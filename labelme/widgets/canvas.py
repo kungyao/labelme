@@ -6,7 +6,6 @@ from labelme import QT5
 from labelme.shape import Shape
 import labelme.utils
 
-
 from qtpy.QtCore import QPointF
 # TODO(unknown):
 # - [maybe] Find optimal epsilon value.
@@ -84,7 +83,10 @@ class Canvas(QtWidgets.QWidget):
         # Set widget options.
         self.setMouseTracking(True)
         self.setFocusPolicy(QtCore.Qt.WheelFocus)
-
+        
+        self.minArea = 900
+        self.ccRegion = None
+        
     def fillDrawing(self):
         return self._fill_drawing
 
@@ -529,7 +531,7 @@ class Canvas(QtWidgets.QWidget):
         self.prevPoint = point
         if not self.boundedMoveShapes(shapes, point - offset):
             self.boundedMoveShapes(shapes, point + offset)
-
+    # 重新渲染畫面
     def paintEvent(self, event):
         if not self.pixmap:
             return super(Canvas, self).paintEvent(event)
@@ -554,7 +556,13 @@ class Canvas(QtWidgets.QWidget):
         if self.current:
             self.current.paint(p)
             self.line.paint(p)
-        
+        # draw cc region
+        if self.ccRegion:
+            for cc in self.ccRegion:
+                if cc[1] < self.minArea:
+                    continue
+                cc[0].paint(p)
+                
         if self.selectedShapesCopy:
             for s in self.selectedShapesCopy:
                 s.paint(p)
@@ -775,7 +783,10 @@ class Canvas(QtWidgets.QWidget):
         self.pixmap = None
         self.shapesBackups = []
         self.update()
+
+    def setMinAreaValue(self, minVal=900):
+        self.minArea = minVal
     
-    def setCCRegion(self, ccRegion):
+    def setCCRegion(self, ccRegion=None):
         self.ccRegion = ccRegion
 
