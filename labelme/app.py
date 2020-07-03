@@ -102,6 +102,7 @@ class MainWindow(QtWidgets.QMainWindow):
             completion=self._config["label_completion"],
             fit_to_content=self._config["fit_to_content"],
             flags=self._config["label_flags"],
+            app=self
         )
 
         self.labelList = LabelListWidget()
@@ -749,6 +750,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Application state.
         self.image = QtGui.QImage()
+        self.np_image = None
         self.imagePath = None
         self.recentFiles = []
         self.maxRecent = 7
@@ -1338,6 +1340,8 @@ class MainWindow(QtWidgets.QMainWindow):
             # 設定group
             shape = self.canvas.setLastLabel(text, flags)
             shape.group_id = group_id
+            # test
+            # utils.connected_component_from_rectangle_region(self.np_image, shape.points)
             # 增加shape至container
             self.addLabel(shape)
             self.actions.editMode.setEnabled(True)
@@ -1440,7 +1444,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.fileListWidget.setCurrentRow(self.imageList.index(filename))
             self.fileListWidget.repaint()
             return
-
         self.resetState()
         self.canvas.setEnabled(False)
         if filename is None:
@@ -1485,7 +1488,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.imagePath = filename
             self.labelFile = None
         image = QtGui.QImage.fromData(self.imageData)
-
         if image.isNull():
             formats = [
                 "*.{}".format(fmt.data().decode())
@@ -1501,6 +1503,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.status(self.tr("Error reading %s") % filename)
             return False
         self.image = image
+        self.np_image = utils.qimage_to_np_array(image)
         self.filename = filename
         if self._config["keep_prev"]:
             prev_shapes = self.canvas.shapes

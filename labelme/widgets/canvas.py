@@ -7,6 +7,7 @@ from labelme.shape import Shape
 import labelme.utils
 
 
+from qtpy.QtCore import QPointF
 # TODO(unknown):
 # - [maybe] Find optimal epsilon value.
 
@@ -553,6 +554,7 @@ class Canvas(QtWidgets.QWidget):
         if self.current:
             self.current.paint(p)
             self.line.paint(p)
+        
         if self.selectedShapesCopy:
             for s in self.selectedShapesCopy:
                 s.paint(p)
@@ -773,3 +775,7 @@ class Canvas(QtWidgets.QWidget):
         self.pixmap = None
         self.shapesBackups = []
         self.update()
+    
+    def setCCRegion(self, ccRegion):
+        self.ccRegion = ccRegion
+

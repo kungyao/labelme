@@ -9,6 +9,7 @@ from .image import img_data_to_arr
 from .image import img_data_to_pil
 from .image import img_data_to_png_data
 from .image import img_pil_to_data
+from .image import qimage_to_np_array
 
 from .shape import labelme_shapes_to_label
 from .shape import masks_to_bboxes
@@ -25,3 +26,5 @@ from .qt import struct
 from .qt import distance
 from .qt import distancetoline
 from .qt import fmtShortcut
+
+from .label import connected_component_from_rectangle_region

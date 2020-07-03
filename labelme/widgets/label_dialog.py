@@ -5,6 +5,10 @@ from qtpy import QtCore
 from qtpy import QtGui
 from qtpy import QtWidgets
 
+from PyQt5.QtCore import Qt
+from qtpy.QtCore import QPointF
+from qtpy.QtWidgets import QSlider
+
 from labelme.logger import logger
 import labelme.utils
 
@@ -38,6 +42,7 @@ class LabelDialog(QtWidgets.QDialog):
         completion="startswith",
         fit_to_content=None,
         flags=None,
+        app=None
     ):
         if fit_to_content is None:
             fit_to_content = {"row": False, "column": True}
@@ -61,6 +66,15 @@ class LabelDialog(QtWidgets.QDialog):
             layout_edit.addWidget(self.edit, 6)
             layout_edit.addWidget(self.edit_group_id, 2)
             layout.addLayout(layout_edit)
+        
+        # slider
+        self.sl = QSlider(Qt.Horizontal)
+        self.sl.setMinimum(0)
+        self.sl.setMaximum(256)
+        self.sl.setValue(30)
+        self.sl.valueChanged.connect(self.sl_valuechange)
+        layout.addWidget(self.sl)
+        
         # buttons
         self.buttonBox = bb = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
@@ -123,6 +137,8 @@ class LabelDialog(QtWidgets.QDialog):
             raise ValueError("Unsupported completion: {}".format(completion))
         completer.setModel(self.labelList.model())
         self.edit.setCompleter(completer)
+
+        self.app = app
 
     def addLabelHistory(self, label):
         if self.labelList.findItems(label, QtCore.Qt.MatchExactly):
@@ -200,7 +216,7 @@ class LabelDialog(QtWidgets.QDialog):
             return int(group_id)
         return None
 
-    def popUp(self, text=None, move=True, flags=None, group_id=None):
+    def popUp(self, text=None, move=True, flags=None, group_id=None, ccRegion=None):
         if self._fit_to_content["row"]:
             self.labelList.setMinimumHeight(
                 self.labelList.sizeHintForRow(0) * self.labelList.count() + 2
@@ -236,3 +252,9 @@ class LabelDialog(QtWidgets.QDialog):
             return self.edit.text(), self.getFlags(), self.getGroupId()
         else:
             return None, None, None
+
+    def sl_valuechange(self): 
+        print(self.app.canvas.line.points)
+        self.app.canvas.line.points = [QPointF(10, 10), QPointF(30, self.sl.value())]
+        self.app.canvas.repaint()
+

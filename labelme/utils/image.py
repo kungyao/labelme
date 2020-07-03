@@ -6,6 +6,8 @@ import PIL.ExifTags
 import PIL.Image
 import PIL.ImageOps
 
+from qtpy import QtGui
+import cv2
 
 def img_data_to_pil(img_data):
     f = io.BytesIO()
@@ -99,3 +101,16 @@ def apply_exif_orientation(image):
         return image.transpose(PIL.Image.ROTATE_90)
     else:
         return image
+
+def qimage_to_np_array(qimage):
+    incomingImage = qimage.convertToFormat(QtGui.QImage.Format.Format_RGB32)
+
+    width = incomingImage.width()
+    height = incomingImage.height()
+
+    ptr = incomingImage.constBits()
+    ptr.setsize(height * width * 4)
+    arr = np.array(ptr).reshape(height, width, 4)  #  Copies the data
+    return arr 
+    
+    
