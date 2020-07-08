@@ -56,7 +56,7 @@ def connected_component_from_rectangle_region(np_image, rectangle):
             # int(rectangle[0].x()) : int(rectangle[1].x())
         # ]
     # )
-    print(rectangle[0], rectangle[1])
+    # print(rectangle[0], rectangle[1])
     label = np.zeros(np_image.shape, np_image.dtype)
     # set range of numpy array data
     label[
