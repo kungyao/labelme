@@ -1,6 +1,46 @@
 import numpy as np
 import cv2
 
+# rectangle 1
+# r1a top left
+# r1b bottom right
+# rectangle 2
+# r2a top left
+# r2b bottom right
+def isRectangleOverlap(r1a, r1b, r2a, r2b):
+    # if one rectangle is on left side of other 
+    if (r1a[0] >= r2b[0] || r2a[0] >= r1b[0])
+        return False; 
+    # if one rectangle is above other 
+    if (r1a[1] >= r2b[1] || r2a[1] >= r1b[1])
+        return False; 
+    return True; 
+
+# def combine_overlap_rectangle(ccRegion):
+    # newCCRegion = []
+    # beOverlappedIndex = []
+    
+    # size = len(ccRegion)
+    # for i in range(0, size):
+        # if i in beOverlappedIndex:
+            # continue
+        # r1 = ccRegion[i]
+        # for j in enumerate(i + 1, size):
+            # if j in beOverlappedIndex:
+                # continue
+            # r2 = ccRegion[j]
+            # if isRectangleOverlap(r1, r2)
+                # newP1 = [min(r1[0][0], r2[0][0]), min(r1[0][1], r2[0][1])]
+                # newP2 = [max(r1[1][0], r2[1][0]), max(r1[1][1], r2[1][1])]
+                # newArea = (newP2[0] - newP1[0]) * (newP2[1] - newP1[1])
+                # r1 = (
+                    # newP1,
+                    # newP2,
+                    # newArea
+                # )
+                # beOverlappedItem.append(j)
+        # newCCRegion.append(r1.copy())
+    # return newCCRegion
 # rectangle : QPointF list
 # QPointF.x() / QPointF.y()
 # return (p1, p2, area)
@@ -37,5 +77,7 @@ def connected_component_from_rectangle_region(np_image, rectangle):
         p2[1] = p2[1] + GObjectH
         # container
         ccRegion.append((p1, p2, area))
+    
+    # ccRegion = combine_overlap_rectangle(ccRegion)
     
     return ccRegion
