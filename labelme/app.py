@@ -1306,7 +1306,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.canvas.loadShapes([item.shape() for item in self.labelList])
 
     # Callback functions:
-
     def newShape(self):
         """Pop-up and give focus to the label editor.
 
@@ -1317,12 +1316,18 @@ class MainWindow(QtWidgets.QMainWindow):
         if items:
             text = items[0].data(Qt.UserRole)
         flags = {}
+        ccRegion = None
         group_id = None
         if self._config["display_label_popup"] or not text:
             # 抓前一次的輸入
             previous_text = self.labelDialog.edit.text()
+            if self.canvas.createMode=="cc_rectangle":
+                shape = self.canvas.shapes[-1]
+                ccRegion = utils.connected_component_from_rectangle_region(self.np_image, shape)
+                self.canvas.setCCRegion(ccRegion)
             # 等待使用者輸入
             text, flags, group_id = self.labelDialog.popUp(text)
+            self.canvas.setCCRegion()
             # 輸入完成，判斷是否有東西
             if not text:
                 self.labelDialog.edit.setText(previous_text)
@@ -1337,13 +1342,31 @@ class MainWindow(QtWidgets.QMainWindow):
             text = ""
         if text:
             self.labelList.clearSelection()
-            # 設定group
-            shape = self.canvas.setLastLabel(text, flags)
-            shape.group_id = group_id
-            # test
-            # utils.connected_component_from_rectangle_region(self.np_image, shape.points)
-            # 增加shape至container
-            self.addLabel(shape)
+            if self.canvas.createMode=="cc_rectangle":
+                # 清除外框
+                self.canvas.shapes.pop()
+                self.canvas.shapesBackups.pop()
+                # 取得拉條的值
+                minVal = self.labelDialog.sl.value()
+                minVal *= minVal
+                for cc in ccRegion:
+                    if cc[1] < minVal:
+                        continue
+                    cc[0].label = text
+                    cc[0].flags = flags
+                    cc[0].group_id = group_id
+                    # 增加shape到container
+                    self.canvas.shapes.append(cc[0])
+                    self.addLabel(cc[0])
+                # 增加到backup
+                self.canvas.storeShapes()
+                self.canvas.update()
+            else:
+                # 設定group
+                shape = self.canvas.setLastLabel(text, flags)
+                shape.group_id = group_id
+                # 增加shape至container
+                self.addLabel(shape)
             self.actions.editMode.setEnabled(True)
             self.actions.undoLastPoint.setEnabled(False)
             self.actions.undo.setEnabled(True)

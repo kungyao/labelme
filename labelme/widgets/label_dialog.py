@@ -216,7 +216,7 @@ class LabelDialog(QtWidgets.QDialog):
             return int(group_id)
         return None
 
-    def popUp(self, text=None, move=True, flags=None, group_id=None, ccRegion=None):
+    def popUp(self, text=None, move=True, flags=None, group_id=None):
         if self._fit_to_content["row"]:
             self.labelList.setMinimumHeight(
                 self.labelList.sizeHintForRow(0) * self.labelList.count() + 2
@@ -254,7 +254,9 @@ class LabelDialog(QtWidgets.QDialog):
             return None, None, None
 
     def sl_valuechange(self): 
-        print(self.app.canvas.line.points)
-        self.app.canvas.line.points = [QPointF(10, 10), QPointF(30, self.sl.value())]
+        self.app.canvas.setMinAreaValue(self.sl.value()*self.sl.value())
         self.app.canvas.repaint()
+        # print(self.app.canvas.line.points)
+        # self.app.canvas.line.points = [QPointF(10, 10), QPointF(30, self.sl.value())]
+        # self.app.canvas.repaint()
 
