@@ -268,6 +268,14 @@ class Shape(object):
     def copy(self):
         return copy.deepcopy(self)
 
+    def setColor(self, r, g, b):
+        self.line_color = QtGui.QColor(r, g, b)
+        self.vertex_fill_color = QtGui.QColor(r, g, b)
+        self.hvertex_fill_color = QtGui.QColor(255, 255, 255)
+        self.fill_color = QtGui.QColor(r, g, b, 128)
+        self.select_line_color = QtGui.QColor(255, 255, 255)
+        self.select_fill_color = QtGui.QColor(r, g, b, 155)
+
     def __len__(self):
         return len(self.points)
 
@@ -276,3 +284,4 @@ class Shape(object):
 
     def __setitem__(self, key, value):
         self.points[key] = value
+    

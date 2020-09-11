@@ -42,7 +42,8 @@ from labelme.widgets import ZoomWidget
 # - Zoom is too "steppy".
 
 
-LABEL_COLORMAP = imgviz.label_colormap(value=200)
+# num of classes
+LABEL_COLORMAP = imgviz.label_colormap(value=148)
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -134,6 +135,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 "Press 'Esc' to deselect."
             )
         )
+        # load label list
         if self._config["labels"]:
             for label in self._config["labels"]:
                 item = self.uniqLabelList.createItemFromLabel(label)
@@ -1052,7 +1054,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def editLabel(self, item=None):
         if item and not isinstance(item, LabelListWidgetItem):
             raise TypeError("item must be LabelListWidgetItem type")
-
         if not self.canvas.editing():
             return
         if not item:
@@ -1078,15 +1079,17 @@ class MainWindow(QtWidgets.QMainWindow):
         shape.label = text
         shape.flags = flags
         shape.group_id = group_id
+        rgb = self._get_rgb_by_label(shape.label)
+        shape.setColor(rgb[0], rgb[1], rgb[2])
         if shape.group_id is None:
             item.setText(shape.label)
         else:
             item.setText("{} ({})".format(shape.label, shape.group_id))
-        self.setDirty()
         if not self.uniqLabelList.findItemsByLabel(shape.label):
             item = QtWidgets.QListWidgetItem()
             item.setData(Qt.UserRole, shape.label)
             self.uniqLabelList.addItem(item)
+        self.setDirty()
 
     def fileSearchChanged(self):
         self.importDirImages(

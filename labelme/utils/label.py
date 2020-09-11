@@ -12,10 +12,10 @@ from qtpy.QtCore import QPointF
 # r2b bottom right
 def isRectangleOverlap(r1a, r1b, r2a, r2b):
     # if one rectangle is on left side of other 
-    if (r1a[0] >= r2b[0] || r2a[0] >= r1b[0])
+    if (r1a[0] >= r2b[0] or r2a[0] >= r1b[0]):
         return False; 
     # if one rectangle is above other 
-    if (r1a[1] >= r2b[1] || r2a[1] >= r1b[1])
+    if (r1a[1] >= r2b[1] or r2a[1] >= r1b[1]):
         return False; 
     return True; 
 
