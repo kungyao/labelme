@@ -1048,6 +1048,7 @@ class MainWindow(QtWidgets.QMainWindow):
         shape.label = text
         shape.flags = flags
         shape.group_id = group_id
+        # update color
         rgb = self._get_rgb_by_label(shape.label)
         shape.setColor(rgb[0], rgb[1], rgb[2])
         if shape.group_id is None:
