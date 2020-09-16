@@ -350,6 +350,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tr("Create CC Rectangle Inside the Choosing Bubble"),
             enabled=False,
         )
+        createMergeShapeMode = action(
+            self.tr("Create Merge Rectangle"),
+            lambda: self.toggleDrawMode(False, createMode="merge_rectangle"),
+            shortcuts["create_merge_rectangle"],
+            "objects",
+            self.tr("Merge Shape Inside the Rectangle with Same Label"),
+            enabled=False,
+        )
         createCircleMode = action(
             self.tr("Create Circle"),
             lambda: self.toggleDrawMode(False, createMode="circle"),
@@ -595,6 +603,7 @@ class MainWindow(QtWidgets.QMainWindow):
             editMode=editMode,
             createRectangleMode=createRectangleMode,
             createCCSelectMode=createCCSelectMode,
+            createMergeShapeMode=createMergeShapeMode,
             createCircleMode=createCircleMode,
             createLineMode=createLineMode,
             createPointMode=createPointMode,
@@ -631,6 +640,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createRectangleMode,
                 createCCSelectMode,
                 createCCMode,
+                createMergeShapeMode,
                 createCircleMode,
                 createLineMode,
                 createPointMode,
@@ -649,6 +659,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createMode,
                 createRectangleMode,
                 createCCSelectMode,
+                createMergeShapeMode,
                 createCircleMode,
                 createLineMode,
                 createPointMode,
@@ -849,6 +860,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actions.createRectangleMode,
             self.actions.createCCSelectMode,
             self.actions.createCCMode,
+            self.actions.createMergeShapeMode,
             self.actions.createCircleMode,
             self.actions.createLineMode,
             self.actions.createPointMode,
@@ -1320,72 +1332,85 @@ class MainWindow(QtWidgets.QMainWindow):
 
         position MUST be in global coordinates.
         """
-        items = self.uniqLabelList.selectedItems()
-        text = None
-        if items:
-            text = items[0].data(Qt.UserRole)
-        flags = {}
-        ccRegion = None
-        group_id = None
-        if self._config["display_label_popup"] or not text:
-            # 抓前一次的輸入
-            previous_text = self.labelDialog.edit.text()
-            if self.canvas.createMode=="cc_rectangle":
-                shape = self.canvas.shapes[-1]
-                # 生成cc區域
-                ccRegion = utils.connected_component_from_rectangle_region(self.np_image, shape)
-                self.canvas.setCCRegion(ccRegion)
-            # 等待使用者輸入，根據拉條視覺化要生成的cc區域
-            text, flags, group_id = self.labelDialog.popUp(text)
-            self.canvas.setCCRegion()
-            # 輸入完成，判斷是否有東西
-            if not text:
-                self.labelDialog.edit.setText(previous_text)
+        
+        if self.canvas.createMode == "merge_rectangle":
+            pass
+            # # self.labelList
+            # self.canvas.deleteSelected()
+            
+            # # 清除外框
+            # self.canvas.shapes.pop()
+            # self.canvas.shapesBackups.pop() 
+            
+            # self.setDirty()
+        else:
+            items = self.uniqLabelList.selectedItems()
+            text = None
+            if items:
+                text = items[0].data(Qt.UserRole)
+            flags = {}
+            ccRegion = None
+            group_id = None
+            
+            if self._config["display_label_popup"] or not text:
+                # 抓前一次的輸入
+                previous_text = self.labelDialog.edit.text()
+                if self.canvas.createMode=="cc_rectangle":
+                    shape = self.canvas.shapes[-1]
+                    # 生成cc區域
+                    ccRegion = utils.connected_component_from_rectangle_region(self.np_image, shape)
+                    self.canvas.setCCRegion(ccRegion)
+                # 等待使用者輸入，根據拉條視覺化要生成的cc區域
+                text, flags, group_id = self.labelDialog.popUp(text)
+                self.canvas.setCCRegion()
+                # 輸入完成，判斷是否有東西
+                if not text:
+                    self.labelDialog.edit.setText(previous_text)
 
-        if text and not self.validateLabel(text):
-            self.errorMessage(
-                self.tr("Invalid label"),
-                self.tr("Invalid label '{}' with validation type '{}'").format(
-                    text, self._config["validate_label"]
-                ),
-            )
-            text = ""
-        if text:
-            self.labelList.clearSelection()
-            if self.canvas.createMode=="cc_rectangle":
-                if len(ccRegion) != 0:
+            if text and not self.validateLabel(text):
+                self.errorMessage(
+                    self.tr("Invalid label"),
+                    self.tr("Invalid label '{}' with validation type '{}'").format(
+                        text, self._config["validate_label"]
+                    ),
+                )
+                text = ""
+            if text:
+                self.labelList.clearSelection()
+                if self.canvas.createMode=="cc_rectangle":
                     # 清除外框
                     self.canvas.shapes.pop()
                     self.canvas.shapesBackups.pop()
-                    # 取得拉條的值
-                    minVal = self.labelDialog.sl.value()
-                    minVal *= minVal
-                    for cc in ccRegion:
-                        if cc[1] < minVal:
-                            continue
-                        cc[0].label = text
-                        cc[0].flags = flags
-                        cc[0].group_id = group_id
-                        # 增加shape到container
-                        self.canvas.shapes.append(cc[0])
-                        self.addLabel(cc[0])
-                    # 增加到backup
+                    if len(ccRegion) != 0:
+                        # 取得拉條的值
+                        minVal = self.labelDialog.sl.value()
+                        minVal *= minVal
+                        for cc in ccRegion:
+                            if cc[1] < minVal:
+                                continue
+                            cc[0].label = text
+                            cc[0].flags = flags
+                            cc[0].group_id = group_id
+                            # 增加shape到container
+                            self.canvas.shapes.append(cc[0])
+                            self.addLabel(cc[0])
+                        # 增加到backup
                     self.canvas.storeShapes()
                     self.canvas.update()
+                else:
+                    # 設定group
+                    shape = self.canvas.setLastLabel(text, flags)
+                    shape.group_id = group_id
+                    # 增加shape至container
+                    self.addLabel(shape)
+                self.actions.editMode.setEnabled(True)
+                self.actions.undoLastPoint.setEnabled(False)
+                self.actions.undo.setEnabled(True)
+                self.setDirty()
             else:
-                # 設定group
-                shape = self.canvas.setLastLabel(text, flags)
-                shape.group_id = group_id
-                # 增加shape至container
-                self.addLabel(shape)
-            self.actions.editMode.setEnabled(True)
-            self.actions.undoLastPoint.setEnabled(False)
-            self.actions.undo.setEnabled(True)
-            self.setDirty()
-        else:
-            # 沒輸入group，不增加新shape
-            self.canvas.undoLastLine()
-            self.canvas.shapesBackups.pop()
+                # 沒輸入group，不增加新shape
+                self.canvas.undoLastLine()
+                self.canvas.shapesBackups.pop()
 
     def scrollRequest(self, delta, orientation):
         units = -delta * 0.1  # natural scroll
