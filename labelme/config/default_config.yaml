@@ -98,3 +98,6 @@ shortcuts:
   add_point_to_edge: Ctrl+Shift+P
   edit_label: Ctrl+E
   toggle_keep_prev_mode: Ctrl+P
+  
+  create_cc_rectangle: F1
+  create_cc_region: F2

@@ -337,10 +337,18 @@ class MainWindow(QtWidgets.QMainWindow):
         createCCSelectMode = action(
             self.tr("Create CC Rectangle"),
             lambda: self.toggleDrawMode(False, createMode="cc_rectangle"),
-            shortcuts["create_rectangle"],
+            shortcuts["create_cc_rectangle"],
             "objects",
-            self.tr("Start drawing rectangles"),
+            self.tr("Create CC Rectangle Inside the drawing Rectangle"),
             enabled=False,            
+        )
+        createCCMode = action(
+            self.tr("Generate CC Regions"),
+            self.createCCRectangle,
+            shortcuts["create_cc_region"],
+            "objects",
+            self.tr("Create CC Rectangle Inside the Choosing Bubble"),
+            enabled=False,
         )
         createCircleMode = action(
             self.tr("Create Circle"),
@@ -601,6 +609,7 @@ class MainWindow(QtWidgets.QMainWindow):
             zoomActions=zoomActions,
             openNextImg=openNextImg,
             openPrevImg=openPrevImg,
+            createCCMode=createCCMode,
             fileMenuActions=(open_, opendir, save, saveAs, close, quit),
             tool=(),
             # XXX: need to add some actions here to activate the shortcut
@@ -621,6 +630,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createMode,
                 createRectangleMode,
                 createCCSelectMode,
+                createCCMode,
                 createCircleMode,
                 createLineMode,
                 createPointMode,
@@ -838,6 +848,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actions.createMode,
             self.actions.createRectangleMode,
             self.actions.createCCSelectMode,
+            self.actions.createCCMode,
             self.actions.createCircleMode,
             self.actions.createLineMode,
             self.actions.createPointMode,
@@ -947,71 +958,29 @@ class MainWindow(QtWidgets.QMainWindow):
     def toggleDrawMode(self, edit=True, createMode="polygon"):
         self.canvas.setEditing(edit)
         self.canvas.createMode = createMode
-        if edit:
-            self.actions.createMode.setEnabled(True)
-            self.actions.createRectangleMode.setEnabled(True)
-            self.actions.createCCSelectMode.setEnabled(True)
-            self.actions.createCircleMode.setEnabled(True)
-            self.actions.createLineMode.setEnabled(True)
-            self.actions.createPointMode.setEnabled(True)
-            self.actions.createLineStripMode.setEnabled(True)
-        else:
+        # set to default value
+        self.actions.createMode.setEnabled(True)
+        self.actions.createRectangleMode.setEnabled(True)
+        self.actions.createCCSelectMode.setEnabled(True)
+        self.actions.createCircleMode.setEnabled(True)
+        self.actions.createLineMode.setEnabled(True)
+        self.actions.createPointMode.setEnabled(True)
+        self.actions.createLineStripMode.setEnabled(True)
+        if not edit:
             if createMode == "polygon":
                 self.actions.createMode.setEnabled(False)
-                self.actions.createRectangleMode.setEnabled(True)
-                self.actions.createCCSelectMode.setEnabled(True)
-                self.actions.createCircleMode.setEnabled(True)
-                self.actions.createLineMode.setEnabled(True)
-                self.actions.createPointMode.setEnabled(True)
-                self.actions.createLineStripMode.setEnabled(True)
             elif createMode == "rectangle":
-                self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(False)
-                self.actions.createCCSelectMode.setEnabled(True)
-                self.actions.createCircleMode.setEnabled(True)
-                self.actions.createLineMode.setEnabled(True)
-                self.actions.createPointMode.setEnabled(True)
-                self.actions.createLineStripMode.setEnabled(True)
             elif createMode == "line":
-                self.actions.createMode.setEnabled(True)
-                self.actions.createRectangleMode.setEnabled(True)
-                self.actions.createCCSelectMode.setEnabled(True)
-                self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(False)
-                self.actions.createPointMode.setEnabled(True)
-                self.actions.createLineStripMode.setEnabled(True)
             elif createMode == "point":
-                self.actions.createMode.setEnabled(True)
-                self.actions.createRectangleMode.setEnabled(True)
-                self.actions.createCCSelectMode.setEnabled(True)
-                self.actions.createCircleMode.setEnabled(True)
-                self.actions.createLineMode.setEnabled(True)
                 self.actions.createPointMode.setEnabled(False)
-                self.actions.createLineStripMode.setEnabled(True)
             elif createMode == "circle":
-                self.actions.createMode.setEnabled(True)
-                self.actions.createRectangleMode.setEnabled(True)
-                self.actions.createCCSelectMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(False)
-                self.actions.createLineMode.setEnabled(True)
-                self.actions.createPointMode.setEnabled(True)
-                self.actions.createLineStripMode.setEnabled(True)
             elif createMode == "linestrip":
-                self.actions.createMode.setEnabled(True)
-                self.actions.createRectangleMode.setEnabled(True)
-                self.actions.createCCSelectMode.setEnabled(True)
-                self.actions.createCircleMode.setEnabled(True)
-                self.actions.createLineMode.setEnabled(True)
-                self.actions.createPointMode.setEnabled(True)
                 self.actions.createLineStripMode.setEnabled(False)
             elif createMode == "cc_rectangle":
-                self.actions.createMode.setEnabled(True)
-                self.actions.createRectangleMode.setEnabled(True)
                 self.actions.createCCSelectMode.setEnabled(False)
-                self.actions.createCircleMode.setEnabled(True)
-                self.actions.createLineMode.setEnabled(True)
-                self.actions.createPointMode.setEnabled(True)
-                self.actions.createLineStripMode.setEnabled(True)
             else:
                 raise ValueError("Unsupported createMode: %s" % createMode)
         self.actions.editMode.setEnabled(not edit)
@@ -1128,6 +1097,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actions.delete.setEnabled(n_selected)
         self.actions.copy.setEnabled(n_selected)
         self.actions.edit.setEnabled(n_selected == 1)
+        self.actions.createCCMode.setEnabled(n_selected == 1)#
 
     def addLabel(self, shape):
         if shape.group_id is None:
@@ -1307,7 +1277,42 @@ class MainWindow(QtWidgets.QMainWindow):
     def labelOrderChanged(self):
         self.setDirty()
         self.canvas.loadShapes([item.shape() for item in self.labelList])
-
+        
+    def createCCRectangle(self):
+        # get shape from canvas
+        selected = self.labelList.selectedItems()
+        shape = selected[0].shape()
+        # 抓前一次的輸入
+        previous_text = self.labelDialog.edit.text()
+        # 生成cc區域
+        ccRegion = utils.connected_component_from_rectangle_region(self.np_image, shape)
+        # 等待使用者輸入，根據拉條視覺化要生成的cc區域
+        self.canvas.setCCRegion(ccRegion)
+        text, flags, group_id = self.labelDialog.popUp(previous_text)
+        self.canvas.setCCRegion()
+        if not text:
+            self.labelDialog.edit.setText(previous_text)
+        
+        if text:
+            if len(ccRegion) != 0:
+                # 取得拉條的值
+                minVal = self.labelDialog.sl.value()
+                minVal *= minVal
+                for cc in ccRegion:
+                    if cc[1] < minVal:
+                        continue
+                    cc[0].label = text
+                    cc[0].flags = flags
+                    cc[0].group_id = group_id
+                    # 增加shape到container
+                    self.canvas.shapes.append(cc[0])
+                    self.addLabel(cc[0])
+                # 增加到backup
+                self.canvas.storeShapes()
+                self.canvas.update()
+                
+        self.setDirty()
+    
     # Callback functions:
     def newShape(self):
         """Pop-up and give focus to the label editor.
@@ -1326,9 +1331,10 @@ class MainWindow(QtWidgets.QMainWindow):
             previous_text = self.labelDialog.edit.text()
             if self.canvas.createMode=="cc_rectangle":
                 shape = self.canvas.shapes[-1]
+                # 生成cc區域
                 ccRegion = utils.connected_component_from_rectangle_region(self.np_image, shape)
                 self.canvas.setCCRegion(ccRegion)
-            # 等待使用者輸入
+            # 等待使用者輸入，根據拉條視覺化要生成的cc區域
             text, flags, group_id = self.labelDialog.popUp(text)
             self.canvas.setCCRegion()
             # 輸入完成，判斷是否有東西
@@ -1346,24 +1352,25 @@ class MainWindow(QtWidgets.QMainWindow):
         if text:
             self.labelList.clearSelection()
             if self.canvas.createMode=="cc_rectangle":
-                # 清除外框
-                self.canvas.shapes.pop()
-                self.canvas.shapesBackups.pop()
-                # 取得拉條的值
-                minVal = self.labelDialog.sl.value()
-                minVal *= minVal
-                for cc in ccRegion:
-                    if cc[1] < minVal:
-                        continue
-                    cc[0].label = text
-                    cc[0].flags = flags
-                    cc[0].group_id = group_id
-                    # 增加shape到container
-                    self.canvas.shapes.append(cc[0])
-                    self.addLabel(cc[0])
-                # 增加到backup
-                self.canvas.storeShapes()
-                self.canvas.update()
+                if len(ccRegion) != 0:
+                    # 清除外框
+                    self.canvas.shapes.pop()
+                    self.canvas.shapesBackups.pop()
+                    # 取得拉條的值
+                    minVal = self.labelDialog.sl.value()
+                    minVal *= minVal
+                    for cc in ccRegion:
+                        if cc[1] < minVal:
+                            continue
+                        cc[0].label = text
+                        cc[0].flags = flags
+                        cc[0].group_id = group_id
+                        # 增加shape到container
+                        self.canvas.shapes.append(cc[0])
+                        self.addLabel(cc[0])
+                    # 增加到backup
+                    self.canvas.storeShapes()
+                    self.canvas.update()
             else:
                 # 設定group
                 shape = self.canvas.setLastLabel(text, flags)
