@@ -9,7 +9,7 @@ logger_level: info
 
 flags: null
 label_flags: null
-labels: [Kana,Kanji,Bubble,Onomatopoeia,English,Number,Symbol]
+labels: null
 file_search: null
 sort_labels: true
 validate_label: null
@@ -98,7 +98,3 @@ shortcuts:
   add_point_to_edge: Ctrl+Shift+P
   edit_label: Ctrl+E
   toggle_keep_prev_mode: Ctrl+P
-  
-  create_cc_rectangle: F1
-  create_cc_region: F2
-  create_merge_rectangle: F3

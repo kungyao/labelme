@@ -110,3 +110,53 @@ def masks_to_bboxes(masks):
         bboxes.append((y1, x1, y2, x2))
     bboxes = np.asarray(bboxes, dtype=np.float32)
     return bboxes
+
+
+def is_point_inside_rect(rect, pt):
+    if  rect['xmin'] < pt['x'] and pt['x'] < rect['xmax'] and \
+        rect['ymin'] < pt['y'] and pt['y'] < rect['ymax'] :
+        return True
+    return False
+
+
+def is_shape_inside_rect(rect, shape):
+    for pt in shape:
+        if is_point_inside_rect(rect, pt):
+            return True
+    return False
+
+
+def find_shapes_inside_rectangle_with_same_label(rect, shapes):
+    tmpRect = {
+        'xmin' : min(rect[0].x(), rect[1].x()),
+        'ymin' : min(rect[0].y(), rect[1].y()),
+        'xmax' : max(rect[0].x(), rect[1].x()),
+        'ymax' : max(rect[0].y(), rect[1].y()),
+    }
+    
+    # collect shape inside rect
+    shapeByLabel = {}
+    for shape in shapes:
+        tmpShape = []
+        for pt in shape.points:
+            tmpShape.append({
+                'x' : pt.x(),
+                'y' : pt.y()
+            })
+        if is_shape_inside_rect(tmpRect, tmpShape):
+            if not shape.label in shapeByLabel:
+                shapeByLabel[shape.label] = [shape]
+            else:
+                shapeByLabel[shape.label].append(shape)
+        
+    # ckeck label which only has one item in the array
+    deleteKey = []
+    for key in shapeByLabel:
+        if len(shapeByLabel[key]) == 1:
+            deleteKey.append(key)
+    # remove it
+    for key in deleteKey:
+        shapeByLabel.pop(key, None)
+    
+    return shapeByLabel
+    

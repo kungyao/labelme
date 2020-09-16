@@ -82,6 +82,7 @@ class Shape(object):
             "polygon",
             "rectangle",
             "cc_rectangle",
+            "merge_rectangle",
             "point",
             "line",
             "circle",
@@ -137,7 +138,7 @@ class Shape(object):
             line_path = QtGui.QPainterPath()
             vrtx_path = QtGui.QPainterPath()
 
-            if self.shape_type == "rectangle" or self.shape_type == "cc_rectangle":
+            if self.shape_type == "rectangle" or self.shape_type == "cc_rectangle" or self.shape_type == "merge_rectangle":
                 assert len(self.points) in [1, 2]
                 if len(self.points) == 2:
                     rectangle = self.getRectFromLine(*self.points)
@@ -233,7 +234,7 @@ class Shape(object):
         return rectangle
 
     def makePath(self):
-        if self.shape_type == "rectangle" or self.shape_type == "cc_rectangle":
+        if self.shape_type == "rectangle" or self.shape_type == "cc_rectangle" or self.shape_type == "merge_rectangle":
             path = QtGui.QPainterPath()
             if len(self.points) == 2:
                 rectangle = self.getRectFromLine(*self.points)

@@ -978,6 +978,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actions.createLineMode.setEnabled(True)
         self.actions.createPointMode.setEnabled(True)
         self.actions.createLineStripMode.setEnabled(True)
+        self.actions.createMergeShapeMode.setEnabled(True)
         if not edit:
             if createMode == "polygon":
                 self.actions.createMode.setEnabled(False)
@@ -993,6 +994,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.actions.createLineStripMode.setEnabled(False)
             elif createMode == "cc_rectangle":
                 self.actions.createCCSelectMode.setEnabled(False)
+            elif createMode == "merge_rectangle":
+                self.actions.createMergeShapeMode.setEnabled(False)
             else:
                 raise ValueError("Unsupported createMode: %s" % createMode)
         self.actions.editMode.setEnabled(not edit)
@@ -1334,15 +1337,17 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         
         if self.canvas.createMode == "merge_rectangle":
-            pass
-            # # self.labelList
-            # self.canvas.deleteSelected()
+            shape = self.canvas.shapes[-1]
+            # 清除外框
+            self.canvas.shapes.pop()
+            self.canvas.shapesBackups.pop() 
             
-            # # 清除外框
-            # self.canvas.shapes.pop()
-            # self.canvas.shapesBackups.pop() 
+            utils.find_shapes_inside_rectangle_with_same_label(shape, self.canvas.shapes)
             
-            # self.setDirty()
+            self.actions.editMode.setEnabled(True)
+            self.actions.undoLastPoint.setEnabled(False)
+            self.actions.undo.setEnabled(True)
+            self.setDirty()
         else:
             items = self.uniqLabelList.selectedItems()
             text = None

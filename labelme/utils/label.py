@@ -97,3 +97,4 @@ def connected_component_from_rectangle_region(np_image, rectangle):
     # ccRegion = combine_overlap_rectangle(ccRegion)
     
     return ccRegion
+    
