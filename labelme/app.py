@@ -9,6 +9,7 @@ import webbrowser
 import imgviz
 from qtpy import QtCore
 from qtpy.QtCore import Qt
+from qtpy.QtCore import QPointF
 from qtpy import QtGui
 from qtpy import QtWidgets
 
@@ -43,7 +44,7 @@ from labelme.widgets import ZoomWidget
 
 
 # num of classes
-LABEL_COLORMAP = imgviz.label_colormap(value=148)
+LABEL_COLORMAP = imgviz.label_colormap(value=200)
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -1342,8 +1343,56 @@ class MainWindow(QtWidgets.QMainWindow):
             self.canvas.shapes.pop()
             self.canvas.shapesBackups.pop() 
             
-            utils.find_shapes_inside_rectangle_with_same_label(shape, self.canvas.shapes)
-            
+            deletedShapes = []
+            shapeGroups = utils.merge_rectangle_inside_rectangle_with_same_label(shape, self.canvas.shapes)
+            if len(shapeGroups) != 0:
+                labels = []
+                newShapes = []
+                for key in shapeGroups:
+                    labels.append(key)
+                    group = shapeGroups[key]
+                    
+                    shape = group[0][0]
+                    # remove first shape
+                    deletedShapes.append(shape)
+                    self.canvas.shapes.remove(shape)
+                    # assign to initialize shape
+                    box = group[0][1]
+                    newShape = box.copy()
+                    for i in range(1, len(group)):
+                        shape = group[i][0]
+                        # remove list from shape list
+                        deletedShapes.append(shape)
+                        self.canvas.shapes.remove(shape)
+                        # update merge box
+                        box = group[i][1]
+                        newShape['xmin'] = min(newShape['xmin'], box['xmin'])
+                        newShape['ymin'] = min(newShape['ymin'], box['ymin'])
+                        newShape['xmax'] = max(newShape['xmax'], box['xmax'])
+                        newShape['ymax'] = max(newShape['ymax'], box['ymax'])
+                    newShapes.append(newShape)
+                
+                # remove from label list (window?)
+                self.remLabels(deletedShapes)
+                
+                for newShape, label in zip(newShapes, labels):
+                    # generate new shape
+                    shape = Shape()
+                    shape.shape_type = 'rectangle'
+                    shape.addPoint(QPointF(newShape['xmin'], newShape['ymin']))
+                    shape.addPoint(QPointF(newShape['xmax'], newShape['ymax']))
+                    shape.close()
+                    # set shape attribute
+                    shape.label = label
+                    shape.flags = {}
+                    shape.group_id = None
+                    # add to shape list
+                    self.canvas.shapes.append(shape)
+                    self.addLabel(shape)
+                # 
+                self.canvas.storeShapes()
+                self.canvas.update()
+                    
             self.actions.editMode.setEnabled(True)
             self.actions.undoLastPoint.setEnabled(False)
             self.actions.undo.setEnabled(True)

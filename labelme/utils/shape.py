@@ -126,7 +126,17 @@ def is_shape_inside_rect(rect, shape):
     return False
 
 
-def find_shapes_inside_rectangle_with_same_label(rect, shapes):
+def isRectangleOverlap(r1, r2):
+    # if one rectangle is on left side of other 
+    if (r1['xmin'] >= r2['xmax'] or r2['xmin'] >= r1['xmax']):
+        return False; 
+    # if one rectangle is above other 
+    if (r1['ymin'] >= r2['ymax'] or r2['ymin'] >= r1['ymax']):
+        return False; 
+    return True; 
+
+
+def merge_rectangle_inside_rectangle_with_same_label(rect, shapes):
     tmpRect = {
         'xmin' : min(rect[0].x(), rect[1].x()),
         'ymin' : min(rect[0].y(), rect[1].y()),
@@ -137,17 +147,19 @@ def find_shapes_inside_rectangle_with_same_label(rect, shapes):
     # collect shape inside rect
     shapeByLabel = {}
     for shape in shapes:
-        tmpShape = []
-        for pt in shape.points:
-            tmpShape.append({
-                'x' : pt.x(),
-                'y' : pt.y()
-            })
-        if is_shape_inside_rect(tmpRect, tmpShape):
+        if shape.shape_type != 'rectangle':
+            continue
+        tmpShape = {
+            'xmin' : min(shape[0].x(), shape[1].x()),
+            'ymin' : min(shape[0].y(), shape[1].y()),
+            'xmax' : max(shape[0].x(), shape[1].x()),
+            'ymax' : max(shape[0].y(), shape[1].y()),
+        }
+        if isRectangleOverlap(tmpRect, tmpShape):
             if not shape.label in shapeByLabel:
-                shapeByLabel[shape.label] = [shape]
+                shapeByLabel[shape.label] = [(shape, tmpShape)]
             else:
-                shapeByLabel[shape.label].append(shape)
+                shapeByLabel[shape.label].append((shape, tmpShape))
         
     # ckeck label which only has one item in the array
     deleteKey = []
@@ -160,3 +172,4 @@ def find_shapes_inside_rectangle_with_same_label(rect, shapes):
     
     return shapeByLabel
     
+

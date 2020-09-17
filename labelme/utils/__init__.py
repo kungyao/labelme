@@ -16,7 +16,7 @@ from .shape import masks_to_bboxes
 from .shape import polygons_to_mask
 from .shape import shape_to_mask
 from .shape import shapes_to_label
-from .shape import find_shapes_inside_rectangle_with_same_label
+from .shape import merge_rectangle_inside_rectangle_with_same_label
 
 from .qt import newIcon
 from .qt import newButton
