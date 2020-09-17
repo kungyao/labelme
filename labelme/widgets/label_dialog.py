@@ -7,7 +7,7 @@ from qtpy import QtWidgets
 
 from PyQt5.QtCore import Qt
 from qtpy.QtCore import QPointF
-from qtpy.QtWidgets import QSlider
+from qtpy.QtWidgets import QSlider, QLabel
 
 from labelme.logger import logger
 import labelme.utils
@@ -67,13 +67,22 @@ class LabelDialog(QtWidgets.QDialog):
             layout_edit.addWidget(self.edit_group_id, 2)
             layout.addLayout(layout_edit)
         
-        # slider
+        ## slider
+        defaultValue = 16
         self.sl = QSlider(Qt.Horizontal)
         self.sl.setMinimum(0)
-        self.sl.setMaximum(256)
-        self.sl.setValue(30)
+        self.sl.setMaximum(100)
+        self.sl.setValue(defaultValue)
         self.sl.valueChanged.connect(self.sl_valuechange)
-        layout.addWidget(self.sl)
+        ## label show slider value
+        self.slLabel = QLabel("")
+        self.slLabel.setText(str(defaultValue))
+        self.slLabel.setAlignment(Qt.AlignCenter)
+        ## tie slider and label together
+        slider_set = QtWidgets.QHBoxLayout()
+        slider_set.addWidget(self.sl, 6)
+        slider_set.addWidget(self.slLabel, 2)
+        layout.addLayout(slider_set)
         
         # buttons
         self.buttonBox = bb = QtWidgets.QDialogButtonBox(
@@ -253,10 +262,9 @@ class LabelDialog(QtWidgets.QDialog):
         else:
             return None, None, None
 
-    def sl_valuechange(self): 
-        self.app.canvas.setMinAreaValue(self.sl.value()*self.sl.value())
+    def sl_valuechange(self):
+        self.app.canvas.setMinAreaValue(self.sl.value())
+        self.slLabel.setText(str(self.sl.value()))
         self.app.canvas.repaint()
-        # print(self.app.canvas.line.points)
-        # self.app.canvas.line.points = [QPointF(10, 10), QPointF(30, self.sl.value())]
-        # self.app.canvas.repaint()
+        # pass
 

@@ -1114,7 +1114,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actions.delete.setEnabled(n_selected)
         self.actions.copy.setEnabled(n_selected)
         self.actions.edit.setEnabled(n_selected == 1)
-        self.actions.createCCMode.setEnabled(n_selected == 1)#
+        self.actions.createCCMode.setEnabled(n_selected)
 
     def addLabel(self, shape):
         if shape.group_id is None:
@@ -1296,26 +1296,28 @@ class MainWindow(QtWidgets.QMainWindow):
         self.canvas.loadShapes([item.shape() for item in self.labelList])
         
     def createCCRectangle(self):
+        newShape = []
         # get shape from canvas
         selected = self.labelList.selectedItems()
-        shape = selected[0].shape()
-        # 抓前一次的輸入
-        previous_text = self.labelDialog.edit.text()
-        # 生成cc區域
-        ccRegion = utils.connected_component_from_rectangle_region(self.np_image, shape)
+        for item in selected:
+            shape = item.shape()
+            # 抓前一次的輸入
+            previous_text = self.labelDialog.edit.text()
+            # 生成cc區域
+            ccRegion = utils.connected_component_from_rectangle_region(self.np_image, shape)
+            newShape = newShape + ccRegion
+            
         # 等待使用者輸入，根據拉條視覺化要生成的cc區域
-        self.canvas.setCCRegion(ccRegion)
+        self.canvas.setCCRegion(newShape)
         text, flags, group_id = self.labelDialog.popUp(previous_text)
         self.canvas.setCCRegion()
         if not text:
             self.labelDialog.edit.setText(previous_text)
         
         if text:
-            if len(ccRegion) != 0:
-                # 取得拉條的值
-                minVal = self.labelDialog.sl.value()
-                minVal *= minVal
-                for cc in ccRegion:
+            if len(newShape) != 0:
+                minVal = self.canvas.minArea
+                for cc in newShape:
                     if cc[1] < minVal:
                         continue
                     cc[0].label = text
@@ -1327,8 +1329,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 # 增加到backup
                 self.canvas.storeShapes()
                 self.canvas.update()
-                
-        self.setDirty()
+                self.setDirty()
     
     # Callback functions:
     def newShape(self):
@@ -1414,7 +1415,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     # 生成cc區域
                     ccRegion = utils.connected_component_from_rectangle_region(self.np_image, shape)
                     self.canvas.setCCRegion(ccRegion)
-                # 等待使用者輸入，根據拉條視覺化要生成的cc區域
+                # # 等待使用者輸入，根據拉條視覺化要生成的cc區域
                 text, flags, group_id = self.labelDialog.popUp(text)
                 self.canvas.setCCRegion()
                 # 輸入完成，判斷是否有東西
@@ -1436,9 +1437,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.canvas.shapes.pop()
                     self.canvas.shapesBackups.pop()
                     if len(ccRegion) != 0:
-                        # 取得拉條的值
-                        minVal = self.labelDialog.sl.value()
-                        minVal *= minVal
+                        minVal = self.canvas.minArea
                         for cc in ccRegion:
                             if cc[1] < minVal:
                                 continue

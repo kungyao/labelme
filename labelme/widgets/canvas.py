@@ -84,7 +84,8 @@ class Canvas(QtWidgets.QWidget):
         self.setMouseTracking(True)
         self.setFocusPolicy(QtCore.Qt.WheelFocus)
         
-        self.minArea = 900
+        # self.minArea = 900
+        self.minArea = 16
         self.ccRegion = None
         
     def fillDrawing(self):
@@ -536,7 +537,7 @@ class Canvas(QtWidgets.QWidget):
     def paintEvent(self, event):
         if not self.pixmap:
             return super(Canvas, self).paintEvent(event)
-
+        
         p = self._painter
         p.begin(self)
         p.setRenderHint(QtGui.QPainter.Antialiasing)
@@ -548,6 +549,7 @@ class Canvas(QtWidgets.QWidget):
 
         p.drawPixmap(0, 0, self.pixmap)
         Shape.scale = self.scale
+        
         for shape in self.shapes:
             if (shape.selected or not self._hideBackround) and self.isVisible(
                 shape
@@ -785,7 +787,7 @@ class Canvas(QtWidgets.QWidget):
         self.shapesBackups = []
         self.update()
 
-    def setMinAreaValue(self, minVal=900):
+    def setMinAreaValue(self, minVal=16):
         self.minArea = minVal
     
     def setCCRegion(self, ccRegion=None):
