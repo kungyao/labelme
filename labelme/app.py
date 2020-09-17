@@ -1341,7 +1341,7 @@ class MainWindow(QtWidgets.QMainWindow):
             shape = self.canvas.shapes[-1]
             # 清除外框
             self.canvas.shapes.pop()
-            self.canvas.shapesBackups.pop() 
+            self.canvas.shapesBackups.pop()
             
             deletedShapes = []
             shapeGroups = utils.merge_rectangle_inside_rectangle_with_same_label(shape, self.canvas.shapes)
@@ -1392,7 +1392,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 # 
                 self.canvas.storeShapes()
                 self.canvas.update()
-                    
+                
             self.actions.editMode.setEnabled(True)
             self.actions.undoLastPoint.setEnabled(False)
             self.actions.undo.setEnabled(True)
