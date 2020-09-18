@@ -1299,6 +1299,9 @@ class MainWindow(QtWidgets.QMainWindow):
         newShape = []
         # get shape from canvas
         selected = self.labelList.selectedItems()
+        if len(selected) == 0:
+            return
+            
         for item in selected:
             shape = item.shape()
             # 抓前一次的輸入
