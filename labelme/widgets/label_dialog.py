@@ -68,7 +68,7 @@ class LabelDialog(QtWidgets.QDialog):
             layout.addLayout(layout_edit)
         
         ## slider
-        defaultValue = 16
+        defaultValue = 6
         self.sl = QSlider(Qt.Horizontal)
         self.sl.setMinimum(0)
         self.sl.setMaximum(100)

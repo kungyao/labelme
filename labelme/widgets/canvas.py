@@ -85,7 +85,7 @@ class Canvas(QtWidgets.QWidget):
         self.setFocusPolicy(QtCore.Qt.WheelFocus)
         
         # self.minArea = 900
-        self.minArea = 16
+        self.minArea = 6
         self.ccRegion = None
         
     def fillDrawing(self):
