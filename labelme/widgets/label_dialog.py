@@ -7,11 +7,10 @@ from qtpy import QtWidgets
 
 from PyQt5.QtCore import Qt
 from qtpy.QtCore import QPointF
-from qtpy.QtWidgets import QSlider, QLabel
+from qtpy.QtWidgets import QSlider, QLabel, QPushButton
 
 from labelme.logger import logger
 import labelme.utils
-
 
 QT5 = QT_VERSION[0] == "5"
 
@@ -19,6 +18,64 @@ QT5 = QT_VERSION[0] == "5"
 # TODO(unknown):
 # - Calculate optimal position so as not to go out of screen area.
 
+class SubWindow(QtWidgets.QMainWindow):
+    def __init__(self, labelDialog=None):
+        super(SubWindow, self).__init__(labelDialog)
+        self.pixmap = QtGui.QPixmap()
+        self.labelDialog = labelDialog
+        self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+        
+        # disable default button
+        self.setWindowFlag(QtCore.Qt.WindowCloseButtonHint, False)
+        self.setWindowFlag(QtCore.Qt.WindowMinimizeButtonHint, False)
+        self.setWindowFlag(QtCore.Qt.WindowMaximizeButtonHint, False)
+        
+        self._painter = QtGui.QPainter()
+        
+        self.position = QtCore.QPoint(0, 0)
+        self.size = QtCore.QSize(100, 100)
+        self.box = None
+        
+    def initialize(self, pixmap, pos, rect):
+        self.pixmap = pixmap
+        self.box = {
+            'xmin' : min(rect[0].x(), rect[1].x()),
+            'ymin' : min(rect[0].y(), rect[1].y()),
+            'xmax' : max(rect[0].x(), rect[1].x()),
+            'ymax' : max(rect[0].y(), rect[1].y()),
+        }
+        self.size = QtCore.QSize(
+            self.box['xmax'] - self.box['xmin'], 
+            self.box['ymax'] - self.box['ymin']
+        )
+        # set sub window size
+        # self.resize(self.size)
+        self.setFixedSize(self.size)
+        self.position = QtCore.QPoint(
+            max(0, pos.x() - self.width()), 
+            pos.y()
+        )
+        self.move(self.position)
+    
+    def paintEvent(self, event):
+        if not self.pixmap:
+            return super(SubWindow, self).paintEvent(event)
+            
+        p = self._painter
+        p.begin(self)
+        p.setRenderHint(QtGui.QPainter.Antialiasing)
+        p.setRenderHint(QtGui.QPainter.HighQualityAntialiasing)
+        p.setRenderHint(QtGui.QPainter.SmoothPixmapTransform)
+        
+        p.drawPixmap(0, 0, self.pixmap, self.box['xmin'], self.box['ymin'], self.size.width(), self.size.height())
+        
+        p.end()
+        
+    def closeEvent(self, event):
+        if not self.labelDialog.inEdit:
+            event.accept() # let the window close
+        else:
+            event.ignore() 
 
 class LabelQLineEdit(QtWidgets.QLineEdit):
     def setListWidget(self, list_widget):
@@ -47,8 +104,8 @@ class LabelDialog(QtWidgets.QDialog):
         if fit_to_content is None:
             fit_to_content = {"row": False, "column": True}
         self._fit_to_content = fit_to_content
-
         super(LabelDialog, self).__init__(parent)
+        
         self.edit = LabelQLineEdit()
         self.edit.setPlaceholderText(text)
         self.edit.setValidator(labelme.utils.labelValidator())
@@ -60,6 +117,7 @@ class LabelDialog(QtWidgets.QDialog):
         self.edit_group_id.setValidator(
             QtGui.QRegExpValidator(QtCore.QRegExp(r"\d*"), None)
         )
+        
         layout = QtWidgets.QVBoxLayout()
         if show_text_field:
             layout_edit = QtWidgets.QHBoxLayout()
@@ -83,7 +141,7 @@ class LabelDialog(QtWidgets.QDialog):
         slider_set.addWidget(self.sl, 6)
         slider_set.addWidget(self.slLabel, 2)
         layout.addLayout(slider_set)
-        
+
         # buttons
         self.buttonBox = bb = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
@@ -146,9 +204,13 @@ class LabelDialog(QtWidgets.QDialog):
             raise ValueError("Unsupported completion: {}".format(completion))
         completer.setModel(self.labelList.model())
         self.edit.setCompleter(completer)
-
+        
+        
+        # mine
+        self.inEdit = False
         self.app = app
-
+        self.sub_window = SubWindow(self)
+    
     def addLabelHistory(self, label):
         if self.labelList.findItems(label, QtCore.Qt.MatchExactly):
             return
@@ -225,7 +287,11 @@ class LabelDialog(QtWidgets.QDialog):
             return int(group_id)
         return None
 
-    def popUp(self, text=None, move=True, flags=None, group_id=None):
+    def popUp(self, text=None, move=True, flags=None, group_id=None, mode=None):
+        isCCMode = mode == 'cc_rectangle' or mode == 'create_cc_region'
+        self.sl.setVisible(isCCMode)
+        self.slLabel.setVisible(isCCMode)
+        
         if self._fit_to_content["row"]:
             self.labelList.setMinimumHeight(
                 self.labelList.sizeHintForRow(0) * self.labelList.count() + 2
@@ -257,14 +323,28 @@ class LabelDialog(QtWidgets.QDialog):
         self.edit.setFocus(QtCore.Qt.PopupFocusReason)
         if move:
             self.move(QtGui.QCursor.pos())
+            
+        self.setEditMode(True)
+        # temp : pass last create shape to initialize
+        self.sub_window.initialize(pixmap=self.app.canvas.pixmap, pos=self.pos(), rect=self.app.canvas.shapes[-1])
         if self.exec_():
+            self.setEditMode(False)
             return self.edit.text(), self.getFlags(), self.getGroupId()
         else:
+            self.setEditMode(False)
             return None, None, None
+
+    def setEditMode(self, mode):
+        self.inEdit = mode
+        if mode:
+            self.sub_window.show()
+        else:
+            self.sub_window.close()
 
     def sl_valuechange(self):
         self.app.canvas.setMinAreaValue(self.sl.value())
         self.slLabel.setText(str(self.sl.value()))
-        self.app.canvas.repaint()
+        # self.app.canvas.repaint()
+        self.app.paintCanvas()
         # pass
 

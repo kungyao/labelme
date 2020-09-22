@@ -96,17 +96,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self._noSelectionSlot = False
 
         # Main widgets and related state.
-        self.labelDialog = LabelDialog(
-            parent=self,
-            labels=self._config["labels"],
-            sort_labels=self._config["sort_labels"],
-            show_text_field=self._config["show_label_text_field"],
-            completion=self._config["label_completion"],
-            fit_to_content=self._config["fit_to_content"],
-            flags=self._config["label_flags"],
-            app=self
-        )
-
         self.labelList = LabelListWidget()
         self.lastOpenDir = None
 
@@ -172,6 +161,18 @@ class MainWindow(QtWidgets.QMainWindow):
             epsilon=self._config["epsilon"],
             double_click=self._config["canvas"]["double_click"],
         )
+        
+        self.labelDialog = LabelDialog(
+            parent=self,
+            labels=self._config["labels"],
+            sort_labels=self._config["sort_labels"],
+            show_text_field=self._config["show_label_text_field"],
+            completion=self._config["label_completion"],
+            fit_to_content=self._config["fit_to_content"],
+            flags=self._config["label_flags"],
+            app=self
+        )
+
         self.canvas.zoomRequest.connect(self.zoomRequest)
 
         scrollArea = QtWidgets.QScrollArea()
@@ -1312,7 +1313,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
         # 等待使用者輸入，根據拉條視覺化要生成的cc區域
         self.canvas.setCCRegion(newShape)
-        text, flags, group_id = self.labelDialog.popUp(previous_text)
+        text, flags, group_id = self.labelDialog.popUp(previous_text, mode=self.canvas.createMode)
         self.canvas.setCCRegion()
         if not text:
             self.labelDialog.edit.setText(previous_text)
@@ -1419,7 +1420,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     ccRegion = utils.connected_component_from_rectangle_region(self.np_image, shape)
                     self.canvas.setCCRegion(ccRegion)
                 # # 等待使用者輸入，根據拉條視覺化要生成的cc區域
-                text, flags, group_id = self.labelDialog.popUp(text)
+                text, flags, group_id = self.labelDialog.popUp(text, mode=self.canvas.createMode)
                 self.canvas.setCCRegion()
                 # 輸入完成，判斷是否有東西
                 if not text:
