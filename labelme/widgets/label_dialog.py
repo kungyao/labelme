@@ -23,7 +23,9 @@ class SubWindow(QtWidgets.QMainWindow):
         super(SubWindow, self).__init__(labelDialog)
         self.pixmap = QtGui.QPixmap()
         self.labelDialog = labelDialog
-        self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+        
+        # let sub window on the top of main window
+        self.setWindowFlags(self.windowFlags() | QtCore.Qt.Dialog)
         
         # disable default button
         self.setWindowFlag(QtCore.Qt.WindowCloseButtonHint, False)
@@ -125,6 +127,7 @@ class LabelDialog(QtWidgets.QDialog):
             layout_edit.addWidget(self.edit_group_id, 2)
             layout.addLayout(layout_edit)
         
+        ### cc region threshold
         ## slider
         defaultValue = 6
         self.sl = QSlider(Qt.Horizontal)
@@ -140,8 +143,53 @@ class LabelDialog(QtWidgets.QDialog):
         slider_set = QtWidgets.QHBoxLayout()
         slider_set.addWidget(self.sl, 6)
         slider_set.addWidget(self.slLabel, 2)
+        ## add to total layout
         layout.addLayout(slider_set)
-
+        
+        ### text box attribute
+        text_box_set = QtWidgets.QVBoxLayout()
+        ## column of text
+        tmpHor = QtWidgets.QHBoxLayout()
+        self.lines = QtWidgets.QLineEdit()
+        self.lines.setPlaceholderText("")
+        self.lines.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp(r"\d*"), None))
+        # label
+        self.linesLabel = QLabel("Column of Text")
+        self.linesLabel.setAlignment(Qt.AlignLeft)
+        tmpHor.addWidget(self.linesLabel, 5)
+        tmpHor.addWidget(self.lines, 5)
+        text_box_set.addLayout(tmpHor)
+        
+        ## gep between each column
+        tmpHor = QtWidgets.QHBoxLayout()
+        self.colGap = QtWidgets.QLineEdit()
+        self.colGap.setPlaceholderText("")
+        self.colGap.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp(r"\d*"), None))
+        # label
+        self.colGapLabel = QLabel("Gap Between Column")
+        self.colGapLabel.setAlignment(Qt.AlignLeft)
+        tmpHor.addWidget(self.colGapLabel, 5)
+        tmpHor.addWidget(self.colGap, 5)
+        text_box_set.addLayout(tmpHor)
+        
+        ## box size
+        tmpHor = QtWidgets.QHBoxLayout()
+        self.boxSize = QtWidgets.QLineEdit()
+        self.boxSize.setPlaceholderText("")
+        self.boxSize.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp(r"\d*"), None))
+        # label
+        self.boxSizeLabel = QLabel("Box Size")
+        self.boxSizeLabel.setAlignment(Qt.AlignLeft)
+        tmpHor.addWidget(self.boxSizeLabel, 5)
+        tmpHor.addWidget(self.boxSize, 5)
+        text_box_set.addLayout(tmpHor)
+        
+        ## generate button
+        self.generateBoxbb = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Apply, QtCore.Qt.Horizontal, self)
+        text_box_set.addWidget(self.generateBoxbb)
+        ## add to total layout
+        layout.addLayout(text_box_set)
+        
         # buttons
         self.buttonBox = bb = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
