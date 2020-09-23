@@ -33,31 +33,46 @@ class SubWindow(QtWidgets.QMainWindow):
         self.setWindowFlag(QtCore.Qt.WindowMaximizeButtonHint, False)
         
         self._painter = QtGui.QPainter()
+
+        self.scale = 1.0
         
         self.position = QtCore.QPoint(0, 0)
         self.size = QtCore.QSize(100, 100)
         self.box = None
         
     def initialize(self, pixmap, pos, rect):
+        self.scale = 1.0
         self.pixmap = pixmap
         self.box = {
-            'xmin' : min(rect[0].x(), rect[1].x()),
-            'ymin' : min(rect[0].y(), rect[1].y()),
-            'xmax' : max(rect[0].x(), rect[1].x()),
-            'ymax' : max(rect[0].y(), rect[1].y()),
+            'xmin'  : min(rect[0].x(), rect[1].x()),
+            'ymin'  : min(rect[0].y(), rect[1].y()),
+            'width' : abs(rect[0].x() - rect[1].x()),
+            'height': abs(rect[0].y() - rect[1].y()),
         }
         self.size = QtCore.QSize(
-            self.box['xmax'] - self.box['xmin'], 
-            self.box['ymax'] - self.box['ymin']
+            self.box['width'] + 10, 
+            self.box['height'] + 10
         )
+        
+        self.setMinimumSize(self.size)
+        
         # set sub window size
-        # self.resize(self.size)
-        self.setFixedSize(self.size)
+        self.resize(self.size)
+        # self.setFixedSize(self.size)
         self.position = QtCore.QPoint(
             max(0, pos.x() - self.width()), 
             pos.y()
         )
         self.move(self.position)
+        
+    def offsetToCenter(self):
+        s = self.scale
+        area = super(SubWindow, self).size()
+        w, h = self.box['width'] * s, self.box['height'] * s
+        aw, ah = area.width(), area.height()
+        x = (aw - w) / (2 * s) if aw > w else 0
+        y = (ah - h) / (2 * s) if ah > h else 0
+        return QtCore.QPoint(x, y)
     
     def paintEvent(self, event):
         if not self.pixmap:
@@ -69,10 +84,19 @@ class SubWindow(QtWidgets.QMainWindow):
         p.setRenderHint(QtGui.QPainter.HighQualityAntialiasing)
         p.setRenderHint(QtGui.QPainter.SmoothPixmapTransform)
         
-        p.drawPixmap(0, 0, self.pixmap, self.box['xmin'], self.box['ymin'], self.size.width(), self.size.height())
+        p.scale(self.scale, self.scale)
+        p.translate(self.offsetToCenter())
+        
+        p.drawPixmap(0, 0, self.pixmap, self.box['xmin'], self.box['ymin'], self.box['width'], self.box['height'])
         
         p.end()
-
+    
+    def resizeEvent(self, event):
+        ratio_w = event.size().width() / self.box['width']
+        ratio_h = event.size().height() / self.box['height']
+        self.scale = min(ratio_w, ratio_h)
+        self.update()
+    
 class LabelQLineEdit(QtWidgets.QLineEdit):
     def setListWidget(self, list_widget):
         self.list_widget = list_widget
@@ -128,6 +152,7 @@ class LabelDialog(QtWidgets.QDialog):
             layout.addLayout(layout_edit)
         
         ### cc region threshold
+        self.cc_threshold_ui = []
         ## slider
         defaultValue = 6
         self.sl = QSlider(Qt.Horizontal)
@@ -144,9 +169,12 @@ class LabelDialog(QtWidgets.QDialog):
         slider_set.addWidget(self.sl, 6)
         slider_set.addWidget(self.slLabel, 2)
         ## add to total layout
+        self.cc_threshold_ui.append(self.sl)
+        self.cc_threshold_ui.append(self.slLabel)
         layout.addLayout(slider_set)
         
         ### text box attribute
+        self.text_box_ui = []
         text_box_set = QtWidgets.QVBoxLayout()
         ## column of text
         tmpHor = QtWidgets.QHBoxLayout()
@@ -158,6 +186,9 @@ class LabelDialog(QtWidgets.QDialog):
         self.linesLabel.setAlignment(Qt.AlignLeft)
         tmpHor.addWidget(self.linesLabel, 5)
         tmpHor.addWidget(self.lines, 5)
+        # add to ui group
+        self.text_box_ui.append(self.linesLabel)
+        self.text_box_ui.append(self.lines)
         text_box_set.addLayout(tmpHor)
         
         ## gep between each column
@@ -169,7 +200,10 @@ class LabelDialog(QtWidgets.QDialog):
         self.colGapLabel = QLabel("Gap Between Column")
         self.colGapLabel.setAlignment(Qt.AlignLeft)
         tmpHor.addWidget(self.colGapLabel, 5)
-        tmpHor.addWidget(self.colGap, 5)
+        tmpHor.addWidget(self.colGap, 5)       
+        # add to ui group
+        self.text_box_ui.append(self.colGapLabel)
+        self.text_box_ui.append(self.colGap)
         text_box_set.addLayout(tmpHor)
         
         ## box size
@@ -182,10 +216,15 @@ class LabelDialog(QtWidgets.QDialog):
         self.boxSizeLabel.setAlignment(Qt.AlignLeft)
         tmpHor.addWidget(self.boxSizeLabel, 5)
         tmpHor.addWidget(self.boxSize, 5)
+        # add to ui group
+        self.text_box_ui.append(self.boxSizeLabel)
+        self.text_box_ui.append(self.boxSize)
         text_box_set.addLayout(tmpHor)
         
         ## generate button
         self.generateBoxbb = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Apply, QtCore.Qt.Horizontal, self)
+        # add to ui group
+        self.text_box_ui.append(self.generateBoxbb)
         text_box_set.addWidget(self.generateBoxbb)
         ## add to total layout
         layout.addLayout(text_box_set)
@@ -335,9 +374,12 @@ class LabelDialog(QtWidgets.QDialog):
         return None
 
     def popUp(self, text=None, move=True, flags=None, group_id=None, mode=None, shape=None):
-        isCCMode = mode == 'cc_rectangle' or mode == 'create_cc_region'
-        self.sl.setVisible(isCCMode)
-        self.slLabel.setVisible(isCCMode)
+        f = mode == 'cc_rectangle' or mode == 'create_cc_region'
+        for item in self.cc_threshold_ui:
+            item.setVisible(f)
+        f = mode == 'tmp_mode'
+        for item in self.text_box_ui:
+            item.setVisible(f)
         
         if self._fit_to_content["row"]:
             self.labelList.setMinimumHeight(
