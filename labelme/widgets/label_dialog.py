@@ -72,12 +72,6 @@ class SubWindow(QtWidgets.QMainWindow):
         p.drawPixmap(0, 0, self.pixmap, self.box['xmin'], self.box['ymin'], self.size.width(), self.size.height())
         
         p.end()
-        
-    def closeEvent(self, event):
-        if not self.labelDialog.inEdit:
-            event.accept() # let the window close
-        else:
-            event.ignore() 
 
 class LabelQLineEdit(QtWidgets.QLineEdit):
     def setListWidget(self, list_widget):
@@ -107,6 +101,12 @@ class LabelDialog(QtWidgets.QDialog):
             fit_to_content = {"row": False, "column": True}
         self._fit_to_content = fit_to_content
         super(LabelDialog, self).__init__(parent)
+        
+        # disable default button. Use default close button will have bug 
+        # that sub window setting will be reset and can not modify again.
+        # QtCore.Qt.Dialog setting will be reseted.
+        self.setWindowFlag(QtCore.Qt.WindowCloseButtonHint, False)
+        self.setWindowFlag(QtCore.Qt.WindowContextHelpButtonHint, False)
         
         self.edit = LabelQLineEdit()
         self.edit.setPlaceholderText(text)
@@ -253,9 +253,8 @@ class LabelDialog(QtWidgets.QDialog):
         completer.setModel(self.labelList.model())
         self.edit.setCompleter(completer)
         
-        
         # mine
-        self.inEdit = False
+        # self.inEdit = False
         self.app = app
         self.sub_window = SubWindow(self)
     
@@ -335,7 +334,7 @@ class LabelDialog(QtWidgets.QDialog):
             return int(group_id)
         return None
 
-    def popUp(self, text=None, move=True, flags=None, group_id=None, mode=None):
+    def popUp(self, text=None, move=True, flags=None, group_id=None, mode=None, shape=None):
         isCCMode = mode == 'cc_rectangle' or mode == 'create_cc_region'
         self.sl.setVisible(isCCMode)
         self.slLabel.setVisible(isCCMode)
@@ -372,22 +371,24 @@ class LabelDialog(QtWidgets.QDialog):
         if move:
             self.move(QtGui.QCursor.pos())
             
-        self.setEditMode(True)
-        # temp : pass last create shape to initialize
-        self.sub_window.initialize(pixmap=self.app.canvas.pixmap, pos=self.pos(), rect=self.app.canvas.shapes[-1])
-        if self.exec_():
-            self.setEditMode(False)
-            return self.edit.text(), self.getFlags(), self.getGroupId()
-        else:
-            self.setEditMode(False)
-            return None, None, None
-
-    def setEditMode(self, mode):
-        self.inEdit = mode
-        if mode:
+        # initialize sub window
+        if mode == 'tmp_mode':
+            self.sub_window.initialize(pixmap=self.app.canvas.pixmap, pos=self.pos(), rect=shape)
             self.sub_window.show()
-        else:
+        
+        result_text = None
+        result_flag = None
+        result_groupid = None
+        
+        if self.exec_():
+            result_text = self.edit.text()
+            result_flag = self.getFlags()
+            result_groupid = self.getGroupId()
+            
+        if mode == 'tmp_mode':
             self.sub_window.close()
+        
+        return result_text, result_flag, result_groupid, None
 
     def sl_valuechange(self):
         self.app.canvas.setMinAreaValue(self.sl.value())

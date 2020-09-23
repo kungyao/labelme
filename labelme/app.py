@@ -346,7 +346,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         createCCMode = action(
             self.tr("Generate CC Regions"),
-            self.createCCRectangle,
+            self.createCCRegion,
             shortcuts["create_cc_region"],
             "objects",
             self.tr("Create CC Rectangle Inside the Choosing Bubble"),
@@ -358,6 +358,15 @@ class MainWindow(QtWidgets.QMainWindow):
             shortcuts["create_merge_rectangle"],
             "objects",
             self.tr("Merge Shape Inside the Rectangle with Same Label"),
+            enabled=False,
+        )        
+        createTmpMode = action(
+            self.tr("TMP"),
+            # lambda: self.toggleDrawMode(False, createMode="tmp_mode"),
+            self.tmpMode,
+            # shortcuts["create_merge_rectangle"],
+            "objects",
+            self.tr(""),
             enabled=False,
         )
         createCircleMode = action(
@@ -606,6 +615,7 @@ class MainWindow(QtWidgets.QMainWindow):
             createRectangleMode=createRectangleMode,
             createCCSelectMode=createCCSelectMode,
             createMergeShapeMode=createMergeShapeMode,
+            createTmpMode=createTmpMode,
             createCircleMode=createCircleMode,
             createLineMode=createLineMode,
             createPointMode=createPointMode,
@@ -643,6 +653,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createCCSelectMode,
                 createCCMode,
                 createMergeShapeMode,
+                createTmpMode,
                 createCircleMode,
                 createLineMode,
                 createPointMode,
@@ -662,6 +673,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createRectangleMode,
                 createCCSelectMode,
                 createMergeShapeMode,
+                createTmpMode,
                 createCircleMode,
                 createLineMode,
                 createPointMode,
@@ -863,6 +875,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actions.createCCSelectMode,
             self.actions.createCCMode,
             self.actions.createMergeShapeMode,
+            self.actions.createTmpMode,
             self.actions.createCircleMode,
             self.actions.createLineMode,
             self.actions.createPointMode,
@@ -1049,7 +1062,7 @@ class MainWindow(QtWidgets.QMainWindow):
         shape = item.shape()
         if shape is None:
             return
-        text, flags, group_id = self.labelDialog.popUp(
+        text, flags, group_id, _ = self.labelDialog.popUp(
             text=shape.label, flags=shape.flags, group_id=shape.group_id,
         )
         if text is None:
@@ -1116,6 +1129,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actions.copy.setEnabled(n_selected)
         self.actions.edit.setEnabled(n_selected == 1)
         self.actions.createCCMode.setEnabled(n_selected)
+        self.actions.createTmpMode.setEnabled(n_selected == 1)
 
     def addLabel(self, shape):
         if shape.group_id is None:
@@ -1295,25 +1309,34 @@ class MainWindow(QtWidgets.QMainWindow):
     def labelOrderChanged(self):
         self.setDirty()
         self.canvas.loadShapes([item.shape() for item in self.labelList])
+
+    def tmpMode(self):
+        self.setEditMode()
+        shape = self.labelList.selectedItems()[0]
+        shape = shape.shape()
+        previous_text = self.labelDialog.edit.text()
+        text, flags, group_id, _ = self.labelDialog.popUp(previous_text, mode="tmp_mode", shape=shape)
         
-    def createCCRectangle(self):
+    def createCCRegion(self):
+        self.setEditMode()
         newShape = []
         # get shape from canvas
         selected = self.labelList.selectedItems()
         if len(selected) == 0:
             return
             
+        # 抓前一次的輸入
+        previous_text = self.labelDialog.edit.text()
+        
         for item in selected:
             shape = item.shape()
-            # 抓前一次的輸入
-            previous_text = self.labelDialog.edit.text()
             # 生成cc區域
             ccRegion = utils.connected_component_from_rectangle_region(self.np_image, shape)
             newShape = newShape + ccRegion
             
         # 等待使用者輸入，根據拉條視覺化要生成的cc區域
         self.canvas.setCCRegion(newShape)
-        text, flags, group_id = self.labelDialog.popUp(previous_text, mode=self.canvas.createMode)
+        text, flags, group_id, _ = self.labelDialog.popUp(previous_text, mode="cc_in_rectangle")
         self.canvas.setCCRegion()
         if not text:
             self.labelDialog.edit.setText(previous_text)
@@ -1420,7 +1443,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     ccRegion = utils.connected_component_from_rectangle_region(self.np_image, shape)
                     self.canvas.setCCRegion(ccRegion)
                 # # 等待使用者輸入，根據拉條視覺化要生成的cc區域
-                text, flags, group_id = self.labelDialog.popUp(text, mode=self.canvas.createMode)
+                text, flags, group_id, _ = self.labelDialog.popUp(text, mode=self.canvas.createMode)
                 self.canvas.setCCRegion()
                 # 輸入完成，判斷是否有東西
                 if not text:
