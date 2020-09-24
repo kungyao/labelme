@@ -362,9 +362,8 @@ class MainWindow(QtWidgets.QMainWindow):
         )        
         createTmpMode = action(
             self.tr("TMP"),
-            # lambda: self.toggleDrawMode(False, createMode="tmp_mode"),
             self.tmpMode,
-            # shortcuts["create_merge_rectangle"],
+            None,
             "objects",
             self.tr(""),
             enabled=False,
@@ -919,7 +918,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actions.deleteFile.setEnabled(True)
         else:
             self.actions.deleteFile.setEnabled(False)
-
+    
     def toggleActions(self, value=True):
         """Enable/Disable widgets which depend on an opened image."""
         for z in self.actions.zoomActions:
@@ -981,7 +980,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actions.undoLastPoint.setEnabled(drawing)
         self.actions.undo.setEnabled(not drawing)
         self.actions.delete.setEnabled(not drawing)
-
+    
     def toggleDrawMode(self, edit=True, createMode="polygon"):
         self.canvas.setEditing(edit)
         self.canvas.createMode = createMode
@@ -1312,8 +1311,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def tmpMode(self):
         self.setEditMode()
-        shape = self.labelList.selectedItems()[0]
-        shape = shape.shape()
+        
+        selected = self.labelList.selectedItems()
+        if len(selected) == 0:
+            return
+        
+        shape = selected[0].shape()
         previous_text = self.labelDialog.edit.text()
         text, flags, group_id, _ = self.labelDialog.popUp(previous_text, mode="tmp_mode", shape=shape)
         

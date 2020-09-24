@@ -258,7 +258,11 @@ class Shape(object):
 
     def moveVertexBy(self, i, offset):
         self.points[i] = self.points[i] + offset
-
+    
+    def moveAllVertexBy(self, offset):
+        for i in range(len(self.points)):
+            self.points[i] = self.points[i] + offset
+    
     def highlightVertex(self, i, action):
         self._highlightIndex = i
         self._highlightMode = action
@@ -276,7 +280,14 @@ class Shape(object):
         self.fill_color = QtGui.QColor(r, g, b, 128)
         self.select_line_color = QtGui.QColor(255, 255, 255)
         self.select_fill_color = QtGui.QColor(r, g, b, 155)
-
+    
+    def isWhiteRect(self, np_image, offset_x=0, offset_y=0):
+        for y in range(points[0].y(), points[1].y()):
+            for x in range(points[0].x(), points[1].x()):
+                if np_image[y + offset_y][x + offset_x] == 0:
+                    return False
+        return True
+    
     def __len__(self):
         return len(self.points)
 

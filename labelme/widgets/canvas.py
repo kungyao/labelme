@@ -328,6 +328,7 @@ class Canvas(QtWidgets.QWidget):
             pos = self.transformPos(ev.localPos())
         else:
             pos = self.transformPos(ev.posF())
+        
         if ev.button() == QtCore.Qt.LeftButton:
             if self.drawing():
                 if self.current:
