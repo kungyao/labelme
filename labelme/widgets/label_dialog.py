@@ -558,16 +558,16 @@ class LabelDialog(QtWidgets.QDialog):
         
         ## gep between each column
         tmpHor = QtWidgets.QHBoxLayout()
-        self.colGap = QtWidgets.QLineEdit("1")
-        self.colGap.setPlaceholderText("")
-        self.colGap.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp(r"\d*"), None))
+        self.textGap = QtWidgets.QLineEdit("1")
+        self.textGap.setPlaceholderText("")
+        self.textGap.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp(r"\d*"), None))
         # label
-        self.colGapLabel = QLabel("Gap Between Column")
-        self.colGapLabel.setAlignment(Qt.AlignLeft)
-        tmpHor.addWidget(self.colGapLabel, 5)
-        tmpHor.addWidget(self.colGap, 5)       
+        self.textGapLabel = QLabel("Gap Between Text ")
+        self.textGapLabel.setAlignment(Qt.AlignLeft)
+        tmpHor.addWidget(self.textGapLabel, 5)
+        tmpHor.addWidget(self.textGap, 5)       
         # add to ui group
-        self.text_box_ui.append(self.colGapLabel)
+        self.text_box_ui.append(self.textGapLabel)
         self.text_box_ui.append(self.colGap)
         text_box_set.addLayout(tmpHor)
         
