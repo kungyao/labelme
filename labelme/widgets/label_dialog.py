@@ -30,7 +30,7 @@ class MyCanvas(QtWidgets.QWidget):
         # self.setFocusPolicy(QtCore.Qt.WheelFocus)
         
         self.parent = parent
-        self.pixmap = QtGui.QPixmap()
+        self.pixmap = None
         self.np_image = None
         
         self._painter = QtGui.QPainter()
@@ -55,9 +55,8 @@ class MyCanvas(QtWidgets.QWidget):
         self.rows = 0
         self.pt_size = 1
         
-        
         self.defaultThres = 20
-        self.thres = 10
+        self.thres = 20
 
     def initialize(self, pixmap, np_image, pos, rect):
         self.scale = 1.0
@@ -95,12 +94,30 @@ class MyCanvas(QtWidgets.QWidget):
         self.hShape = self.hType = self.hShapeIndex = None
         self.prevhShape = None
     
+    def clean(self):
+        self.pixmap = self.np_image = None
+        self.box = None
+        
+        self.col_lines = []
+        self.row_lines = []
+        
+        self.hShape = self.hType = self.hShapeIndex = None
+        self.prevhShape = None
+        self.movingShape = False
+        
+        self.cols = self.rows = 0
+        self.pt_size = 1
+        
+        self.defaultThres = self.thres = 20
+    
     def generateGrid(self, cols, rows, reset=False):
         self.selectionChanged.emit([])
         
-        if cols == 0 or rows == 0 or (self.cols == cols and self.rows == rows and not reset):
+        if cols == 0 or rows == 0:
             self.col_lines = []
             self.row_lines = []
+            return
+        if self.cols == cols and self.rows == rows and not reset:
             return
         
         w = self.box['width']
@@ -165,9 +182,35 @@ class MyCanvas(QtWidgets.QWidget):
         self.rows = rows
         self.update()
     
-    def toShape(self):
+    def toShape(self, ifClean=True):
         shapes = []
-        
+        if len(self.col_lines) != 0 and len(self.row_lines) != 0:
+
+            def createRectangle(p0, p1):
+                shape = Shape()
+                shape.shape_type = "rectangle"
+                shape.addPoint(p0)
+                shape.addPoint(p1)
+                shape.close()
+                return shape
+
+            offset_x = self.box['xmin']
+            offset_y = self.box['ymin']
+
+            size = abs(self.col_lines[0].points[0].x() - self.col_lines[1].points[0].x())
+            for i in range(0, len(self.row_lines) - 1):
+                y = self.row_lines[i].points[0].y() + offset_y
+                for j in range(0, len(self.col_lines), 2):
+                    x = self.col_lines[j].points[0].x() + offset_x
+                    shape = createRectangle(
+                        QPointF(x, y),
+                        QPointF(x + size, y + size),
+                    )
+                    if not shape.isWhiteRect(self.np_image):
+                        shapes.append(shape)
+
+        if ifClean:
+            self.clean()
         return shapes
     
     def offsetToCenter(self):
@@ -347,7 +390,6 @@ class MyCanvas(QtWidgets.QWidget):
         # self.thres = self.defaultThres / (self.pt_scale * self.scale)
         self.update()    
     
-
 class SubWindow(QtWidgets.QMainWindow):
     def __init__(self, labelDialog=None):
         super(SubWindow, self).__init__(labelDialog)
@@ -368,7 +410,6 @@ class SubWindow(QtWidgets.QMainWindow):
         
         self.setCentralWidget(self.canvas)
         self.canvas.menu = self.menu
-        
     def initialize(self, pixmap, np_image, pos, rect):
         self.canvas.initialize(pixmap, np_image, pos, rect)
         area = super(SubWindow, self).size()
@@ -376,7 +417,9 @@ class SubWindow(QtWidgets.QMainWindow):
         self.move(pos - QtCore.QPoint(area.width(), 0))
     def generateGrid(self, cols, rows, reset=False):
         self.canvas.generateGrid(cols, rows, reset)
-    
+    def toShape(self, ifClean=True):
+        return self.canvas.toShape(ifClean=ifClean)
+
 class LabelQLineEdit(QtWidgets.QLineEdit):
     def setListWidget(self, list_widget):
         self.list_widget = list_widget
@@ -386,7 +429,6 @@ class LabelQLineEdit(QtWidgets.QLineEdit):
             self.list_widget.keyPressEvent(e)
         else:
             super(LabelQLineEdit, self).keyPressEvent(e)
-
 
 class LabelDialog(QtWidgets.QDialog):
     def __init__(
@@ -648,7 +690,7 @@ class LabelDialog(QtWidgets.QDialog):
         f = mode == 'cc_rectangle' or mode == 'create_cc_region'
         for item in self.cc_threshold_ui:
             item.setVisible(f)
-        f = mode == 'tmp_mode'
+        f = mode == 'text_grid'
         for item in self.text_box_ui:
             item.setVisible(f)
         
@@ -685,7 +727,7 @@ class LabelDialog(QtWidgets.QDialog):
             self.move(QtGui.QCursor.pos())
             
         # initialize sub window
-        if mode == 'tmp_mode':
+        if mode == 'text_grid':
             self.sub_window.initialize(pixmap=self.app.canvas.pixmap, np_image=self.app.np_image, pos=self.pos(), rect=shape)
             self.sub_window.show()
         
@@ -698,7 +740,7 @@ class LabelDialog(QtWidgets.QDialog):
             result_flag = self.getFlags()
             result_groupid = self.getGroupId()
             
-        if mode == 'tmp_mode':
+        if mode == 'text_grid':
             self.sub_window.close()
         
         return result_text, result_flag, result_groupid, None
@@ -708,6 +750,9 @@ class LabelDialog(QtWidgets.QDialog):
     
     def resetTextBoxAttribute(self):
         self.sub_window.generateGrid(int("0" + self.text_cols.text()), int("0" + self.text_rows.text()), reset=True)
+    
+    def getShape(self):
+        return self.sub_window.toShape()
     
     def sl_valuechange(self):
         self.app.canvas.setMinAreaValue(self.sl.value())

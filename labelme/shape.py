@@ -283,8 +283,10 @@ class Shape(object):
         self.select_fill_color = QtGui.QColor(r, g, b, 155)
     
     def isWhiteRect(self, np_image, offset_x=0, offset_y=0):
-        for y in range(points[0].y(), points[1].y()):
-            for x in range(points[0].x(), points[1].x()):
+        # self.points[0].y() < self.points[1].y()
+        for y in range(int(self.points[0].y()), int(self.points[1].y())):
+            # self.points[0].x() < self.points[1].x()
+            for x in range(int(self.points[0].x()), int(self.points[1].x())):
                 if np_image[y + offset_y][x + offset_x] == 0:
                     return False
         return True

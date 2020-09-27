@@ -360,9 +360,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tr("Merge Shape Inside the Rectangle with Same Label"),
             enabled=False,
         )        
-        createTmpMode = action(
+        createTextGrid = action(
             self.tr("TMP"),
-            self.tmpMode,
+            self.createTextGrid,
             None,
             "objects",
             self.tr(""),
@@ -614,7 +614,7 @@ class MainWindow(QtWidgets.QMainWindow):
             createRectangleMode=createRectangleMode,
             createCCSelectMode=createCCSelectMode,
             createMergeShapeMode=createMergeShapeMode,
-            createTmpMode=createTmpMode,
+            createTextGrid=createTextGrid,
             createCircleMode=createCircleMode,
             createLineMode=createLineMode,
             createPointMode=createPointMode,
@@ -652,7 +652,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createCCSelectMode,
                 createCCMode,
                 createMergeShapeMode,
-                createTmpMode,
+                createTextGrid,
                 createCircleMode,
                 createLineMode,
                 createPointMode,
@@ -672,7 +672,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createRectangleMode,
                 createCCSelectMode,
                 createMergeShapeMode,
-                createTmpMode,
+                createTextGrid,
                 createCircleMode,
                 createLineMode,
                 createPointMode,
@@ -874,7 +874,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actions.createCCSelectMode,
             self.actions.createCCMode,
             self.actions.createMergeShapeMode,
-            self.actions.createTmpMode,
+            self.actions.createTextGrid,
             self.actions.createCircleMode,
             self.actions.createLineMode,
             self.actions.createPointMode,
@@ -1128,7 +1128,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actions.copy.setEnabled(n_selected)
         self.actions.edit.setEnabled(n_selected == 1)
         self.actions.createCCMode.setEnabled(n_selected)
-        self.actions.createTmpMode.setEnabled(n_selected == 1)
+        self.actions.createTextGrid.setEnabled(n_selected == 1)
 
     def addLabel(self, shape):
         if shape.group_id is None:
@@ -1309,7 +1309,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setDirty()
         self.canvas.loadShapes([item.shape() for item in self.labelList])
 
-    def tmpMode(self):
+    def createTextGrid(self):
         self.setEditMode()
         
         selected = self.labelList.selectedItems()
@@ -1318,8 +1318,25 @@ class MainWindow(QtWidgets.QMainWindow):
         
         shape = selected[0].shape()
         previous_text = self.labelDialog.edit.text()
-        text, flags, group_id, _ = self.labelDialog.popUp(previous_text, mode="tmp_mode", shape=shape)
+        text, flags, group_id, _ = self.labelDialog.popUp(previous_text, mode="text_grid", shape=shape)
         
+        if not text:
+            self.labelDialog.edit.setText(previous_text)
+
+        if text:
+            grids = self.labelDialog.getShape()
+            if len(grids) != 0:
+                for shape in grids:
+                    shape.label = text
+                    shape.flags = flags
+                    shape.group_id = group_id
+                    self.canvas.shapes.append(shape)
+                    self.addLabel(shape)
+
+                self.canvas.storeShapes()
+                self.canvas.update()
+                self.setDirty()        
+
     def createCCRegion(self):
         self.setEditMode()
         newShape = []
