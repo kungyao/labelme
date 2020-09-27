@@ -93,6 +93,7 @@ class MyCanvas(QtWidgets.QWidget):
         self.row_lines = []
         self.hShape = self.hType = self.hShapeIndex = None
         self.prevhShape = None
+        self.update()
     
     def clean(self):
         self.pixmap = self.np_image = None
@@ -109,6 +110,7 @@ class MyCanvas(QtWidgets.QWidget):
         self.pt_size = 1
         
         self.defaultThres = self.thres = 20
+        self.update()
     
     def generateGrid(self, cols, rows, reset=False):
         self.selectionChanged.emit([])
@@ -535,7 +537,7 @@ class LabelDialog(QtWidgets.QDialog):
             self
         )
         self.generateBoxbb.button(self.generateBoxbb.Apply).clicked.connect(self.setTextBoxAttribute)
-        self.generateBoxbb.button(self.generateBoxbb.Reset).clicked.connect(self.setTextBoxAttribute)
+        self.generateBoxbb.button(self.generateBoxbb.Reset).clicked.connect(self.resetTextBoxAttribute)
         # add to ui group
         self.text_box_ui.append(self.generateBoxbb)
         text_box_set.addWidget(self.generateBoxbb, alignment=QtCore.Qt.AlignRight)
@@ -724,7 +726,8 @@ class LabelDialog(QtWidgets.QDialog):
             self.edit.completer().setCurrentRow(row)
         self.edit.setFocus(QtCore.Qt.PopupFocusReason)
         if move:
-            self.move(QtGui.QCursor.pos())
+            # self.move(QtGui.QCursor.pos())
+            self.move(QtWidgets.QApplication.desktop().screen().rect().center() - self.rect().center())
             
         # initialize sub window
         if mode == 'text_grid':
