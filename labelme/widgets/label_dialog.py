@@ -165,6 +165,11 @@ class MyCanvas(QtWidgets.QWidget):
         self.rows = rows
         self.update()
     
+    def toShape(self):
+        shapes = []
+        
+        return shapes
+    
     def offsetToCenter(self):
         s = self.scale
         area = super(MyCanvas, self).size()
@@ -359,50 +364,7 @@ class SubWindow(QtWidgets.QMainWindow):
         
         # right click menu
         self.menu = QtWidgets.QMenu()
-        
         action = functools.partial(labelme.utils.newAction, self)
-        # measureMode = action(
-            # self.tr("Measure Box Size"),
-            # self.ppppp,
-            # None,
-            # "objects",
-            # self.tr("Measure Box Size"),
-            # enabled=True,
-        # )
-        # self.menu.addAction(measureMode)
-        
-        # self.ifSelectLine = action(
-            # self.tr('Select Sep Line'), 
-            # self.setCanvasViewState,
-            # None, 
-            # checkable=True, 
-            # checked=True)
-        # self.ifSelectBox = action(
-            # self.tr('Select Text Box'), 
-            # self.setCanvasViewState,
-            # None, 
-            # checkable=True, 
-            # checked=True)
-        # self.ifShowLine = action(
-            # self.tr('Show Sep Line'), 
-            # self.setCanvasViewState,
-            # None, 
-            # checkable=True, 
-            # checked=True)
-        # self.ifShowBox = action(
-            # self.tr('Show Text Box'), 
-            # self.setCanvasViewState,
-            # None, 
-            # checkable=True, 
-            # checked=True)
-        
-        # on the top of window
-        # menuBar = self.menuBar()
-        # tmpMenu = menuBar.addMenu('View')
-        # tmpMenu.addAction(self.ifSelectLine)
-        # tmpMenu.addAction(self.ifSelectBox)
-        # tmpMenu.addAction(self.ifShowLine)
-        # tmpMenu.addAction(self.ifShowBox)
         
         self.setCentralWidget(self.canvas)
         self.canvas.menu = self.menu
@@ -414,12 +376,6 @@ class SubWindow(QtWidgets.QMainWindow):
         self.move(pos - QtCore.QPoint(area.width(), 0))
     def generateGrid(self, cols, rows, reset=False):
         self.canvas.generateGrid(cols, rows, reset)
-    # def setCanvasViewState(self):
-        # self.canvas.ifSelectLine = self.ifSelectLine.isChecked()
-        # self.canvas.ifSelectBox = self.ifSelectBox.isChecked()
-        # self.canvas.ifShowLine = self.ifShowLine.isChecked()
-        # self.canvas.ifShowBox = self.ifShowBox.isChecked()
-        # self.canvas.update()
     
 class LabelQLineEdit(QtWidgets.QLineEdit):
     def setListWidget(self, list_widget):
