@@ -40,24 +40,25 @@ class MyCanvas(QtWidgets.QWidget):
         self.size = QtCore.QSize(100, 100)
         self.box = None
         
-        self.whiteLines = []
-        self.kanaBox = []
+        self.col_lines = []
+        self.row_lines = []
         
         self.hShape = None
-        self.hVertex = None
+        self.hType = None
         self.hShapeIndex = None
+        
+        self.prevhShape = None
+        
         self.movingShape = False
         
-        self.preLines = 0
-        self.preSize = 0
-        self.preGap = 0
+        self.cols = 0
+        self.rows = 0
         self.pt_size = 1
         
-        self.ifSelectLine = True
-        self.ifSelectBox = True
-        self.ifShowLine = True
-        self.ifShowBox = True
-    
+        
+        self.defaultThres = 20
+        self.thres = 10
+
     def initialize(self, pixmap, np_image, pos, rect):
         self.scale = 1.0
         self.pixmap = pixmap
@@ -75,6 +76,7 @@ class MyCanvas(QtWidgets.QWidget):
         
         w, h = np_image.shape[:2]
         self.pt_scale = min(w / self.box['width'], h / self.box['height'])
+        self.thres = self.defaultThres / self.pt_scale
         self.setMinimumSize(self.size)
         
         # set sub window size
@@ -85,138 +87,83 @@ class MyCanvas(QtWidgets.QWidget):
             # pos.y()
         # )
         
-        self.preLines = 0
-        self.preSize = 0
-        self.preGap = 0
+        self.cols = 0
+        self.rows = 0
         
-        self.kanaBoxes = []
-        self.whiteLines = []
+        self.col_lines = []
+        self.row_lines = []
+        self.hShape = self.hType = self.hShapeIndex = None
+        self.prevhShape = None
     
-    def tmp(self, lines, size, gap, reset=False):
+    def generateGrid(self, cols, rows, reset=False):
         self.selectionChanged.emit([])
         
-        if lines == 0:
-            self.whiteLines = []
-            self.kanaBoxes = []
+        if cols == 0 or rows == 0 or (self.cols == cols and self.rows == rows and not reset):
+            self.col_lines = []
+            self.row_lines = []
             return
         
-        w = self.box['width'] / lines
+        w = self.box['width']
         h = self.box['height']
         
-        if self.preLines != lines or reset:
-            self.whiteLines = []
-            for i in range(lines):
-                shape = Shape()
-                shape.shape_type = "line"
-                shape.addPoint(QPointF(w * i, 0))
-                shape.addPoint(QPointF(w * i, h))
-                shape.setColor(0, 127, 0)
-                shape.scale = self.pt_scale
-                shape.close()
-                self.whiteLines.append(shape)
+        colStep = self.box['width'] / cols
+        rowStep = self.box['height'] / rows
+        # set default box size to (colStep - defaultColGap)
+        defaultColGap = 5
+        defaultBoxSize = colStep - defaultColGap
         
-        if self.preSize != size or self.preGap != gap or self.preLines != lines or reset:
-            self.kanaBoxes = []
-            tmpGap = gap // 2
-            
-            # find first row with balck pixel
-            sy = -1
-            for scan_y in range(int(self.box['height'])):
-                for scan_x in range(int(self.box['width'])):
-                    if self.np_image[int(self.box['ymin']) + scan_y][int(self.box['xmin']) + scan_x] == 0:
-                        sy = scan_y
-                        break
-                if sy != -1:
-                    break
-                    
-            for i, line in enumerate(self.whiteLines):
-                sx = line.points[0].x()
-                ex = self.box['width']
-                if i != lines - 1:
-                    ex = self.whiteLines[i + 1].points[0].x()
+        def createLine(p0, p1, pt_scale, color=(0, 127, 0)):
+            shape = Shape()
+            shape.shape_type = "line"
+            shape.addPoint(p0)
+            shape.addPoint(p1)
+            shape.setColor(color[0], color[1], color[2])
+            shape.scale = pt_scale
+            shape.close()
+            return shape
+        
+        self.col_lines = []
+        for i in range(cols):
+            # main line
+            x = colStep * i
+            self.col_lines.append(createLine(
+                QPointF(x, 0),
+                QPointF(x, h),
+                self.pt_scale,
+                color=(0, 255, 0)
+            ))
+            # constrain line
+            x = x + defaultBoxSize
+            self.col_lines.append(createLine(
+                QPointF(x, 0),
+                QPointF(x, h),
+                self.pt_scale,
+                color=(255, 0, 0)
+            ))
+        
+        self.row_lines = []
+        # add bottom line to bound the text area
+        for i in range(rows + 1):
+            # main line
+            y = defaultBoxSize * i
+            self.row_lines.append(createLine(
+                QPointF(0, y),
+                QPointF(w, y),
+                self.pt_scale,
+                color=(0, 0, 255)
+            ))
+            # # constrain line
+            # y = y + defaultBoxSize
+            # self.row_lines.append(createLine(
+                # QPointF(0, y),
+                # QPointF(w, y),
+                # self.pt_scale,
+                # color=(0, 0, 255)
+            # ))
                 
-                # to int
-                sx = int(sx)
-                ex = int(ex)
-                tmpSize = max(0, min(size, ex - sx))
-                kanaBox = []
-                
-                # previous box['ymax']
-                preY = 0
-                # max scan up times
-                scanUpTolerance = 5
-                # count about scan up times
-                countUp = -1
-                # if create box
-                create = False
-                # should scan up/down
-                scanUp = scanDown = True
-                # 
-                scan_y_up = scan_y_down = max(0, sy - tmpGap) + tmpSize
-                while True:
-                    if scanUp:
-                        for scan_x in range(sx, ex):
-                            if self.np_image[int(self.box['ymin']) + scan_y_up][int(self.box['xmin']) + scan_x] == 0:
-                                break
-                        else:
-                            scan_y = scan_y_up
-                            create = True
-                    if scanDown and not create and scan_y_up != scan_y_down:
-                        for scan_x in range(sx, ex):
-                            if self.np_image[int(self.box['ymin']) + scan_y_down][int(self.box['xmin']) + scan_x] == 0:
-                                break
-                        else:
-                            scan_y = scan_y_down
-                            create = True
-                            
-                    if create:
-                        scan_y = scan_y + tmpGap
-                        # create rectangle
-                        shape = Shape()
-                        shape.shape_type = "rectangle"
-                        shape.addPoint(QPointF(sx, scan_y - tmpSize))
-                        shape.addPoint(QPointF(sx + tmpSize, scan_y))
-                        shape.setColor(127, 0, 0)
-                        shape.scale = self.pt_scale
-                        shape.close()
-                        kanaBox.append(shape)
-                        # step to next
-                        preY = scan_y
-                        countUp = -1
-                        scan_y_up = scan_y_down = scan_y + tmpSize
-                        create = False
-                    else:
-                        scan_y_up = scan_y_up - 1
-                        scan_y_down = scan_y_down + 1
-                        countUp = countUp + 1
-                    
-                    if scan_y_up <= preY or countUp >= scanUpTolerance:
-                        scanUp = False
-                    if scan_y_down > self.box['height']:
-                        scanDown = False
-                        break
-                    
-                last = self.box['height'] - preY
-                if last >= tmpSize / 2:
-                    shape = Shape()
-                    shape.shape_type = "rectangle"
-                    shape.addPoint(QPointF(sx, preY))
-                    shape.addPoint(QPointF(sx + tmpSize, self.box['height']))
-                    shape.setColor(127, 0, 0)
-                    shape.scale = self.pt_scale
-                    shape.close()
-                    kanaBox.append(shape)
-                
-                # for kb in kanaBox:
-                    # if kb.isWhiteRect(np_image, int(self.box['ymin']), int(self.box['xmin'])):
-                    
-                self.kanaBoxes.append(kanaBox)
-                
-        self.preLines = lines
-        self.preSize = size
-        self.preGap = gap
+        self.cols = cols
+        self.rows = rows
         self.update()
-    # def 
     
     def offsetToCenter(self):
         s = self.scale
@@ -242,24 +189,12 @@ class MyCanvas(QtWidgets.QWidget):
         
         p.drawPixmap(0, 0, self.pixmap, self.box['xmin'], self.box['ymin'], self.box['width'], self.box['height'])
         
-        # draw white line
-        if self.ifShowLine:
-            for line in self.whiteLines:
-                line.paint(p)
-        # draw kana box
-        if self.ifShowBox:
-            for boxes in self.kanaBoxes:
-                for box in boxes:
-                    box.fill = box == self.hShape
-                    box.paint(p)
-        
+        for line in self.col_lines:
+            line.paint(p)
+        for line in self.row_lines:
+            line.paint(p)
+            
         p.end()
-    
-    def unHighlight(self):
-        if self.hShape:
-            self.hShape.highlightClear()
-            self.update()
-        self.hShape = self.hVertex = self.hShapeIndex = None
     
     def mouseMoveEvent(self, event):
         try:
@@ -271,43 +206,59 @@ class MyCanvas(QtWidgets.QWidget):
             return
         
         if QtCore.Qt.LeftButton & event.buttons():
-            if self.selectedVertex():
-                self.boundedMoveVertex(pos)
+            if self.selectedLine():
+                self.boundedMoveLine(pos)
                 self.repaint()
                 self.movingShape = True
-            elif self.hShape and self.prevPoint:
-                self.boundedMoveShapes(pos)
-                self.repaint()
-                self.movingShape = True
+            # elif self.hShape and self.prevPoint:
+                # self.boundedMoveShapes(pos)
+                # self.repaint()
+                # self.movingShape = True
             self.prevPoint = pos
             return
         
         self.prevPoint = pos
-        self.unHighlight()
         
-        if self.ifSelectLine:
-            for i, line in enumerate(self.whiteLines):
-                index = line.nearestVertex(pos, 10)
-                if index is not None:
+        colLineSize = len(self.col_lines)
+        # select main col line (green)
+        for i in range(0, len(self.col_lines), 2):
+            line = self.col_lines[i]
+            dis = line.distance(pos, self.thres)
+            if dis is not None:
+                self.hShape = line
+                self.hType = 'col'
+                self.hShapeIndex = i
+                # line.highlightClosest(line.MOVE_VERTEX)
+                self.update()
+                break
+        else: # nothing found go through
+            # select constrain col line (red)
+            for i in range(1, len(self.col_lines), 2):
+                line = self.col_lines[i]
+                dis = line.distance(pos, self.thres)
+                if dis is not None:
                     self.hShape = line
-                    self.hVertex = index
+                    self.hType = 'col'
                     self.hShapeIndex = i
-                    line.highlightVertex(index, line.MOVE_VERTEX)
+                    # line.highlightClosest(line.MOVE_VERTEX)
                     self.update()
                     break
-                    
-        if self.ifSelectBox and self.hShape is None:
-           for boxes in self.kanaBoxes:
-                for box in boxes:
-                    if box.containsPoint(pos):
-                        if self.selectedVertex():
-                            self.hShape.highlightClear()
-                        self.hVertex = None
-                        self.hShape = box
-                        self.hShapeIndex = None
+            else: # nothing found go through
+                # select offset line (blue)
+                for i, line in enumerate(self.row_lines):
+                    dis = line.distance(pos, self.thres)
+                    if dis is not None:
+                        self.hShape = line
+                        self.hType = 'row'
+                        self.hShapeIndex = i
+                        # line.highlightClosest(line.MOVE_VERTEX)
                         self.update()
                         break
-            
+                else: # nothing found go through
+                    if self.hShape:
+                        self.update()
+                    self.hShape = self.hType = self.hShapeIndex = None
+        
     def mousePressEvent(self, event):
         try:
             if QT5:
@@ -323,62 +274,72 @@ class MyCanvas(QtWidgets.QWidget):
             self.update()
     
     def mouseReleaseEvent(self, event):
-        if event.button() == QtCore.Qt.RightButton:
-            menu = self.menu
-            menu.exec_(self.mapToGlobal(event.pos()))
-            QtWidgets.QApplication.restoreOverrideCursor()
+        # if event.button() == QtCore.Qt.RightButton:
+            # menu = self.menu
+            # menu.exec_(self.mapToGlobal(event.pos()))
+            # QtWidgets.QApplication.restoreOverrideCursor()
         if self.movingShape and self.hShape:
             self.movingShape = False
     
     def transformPos(self, point):
         """Convert from widget-logical coordinates to painter-logical ones."""
         return point / self.scale - self.offsetToCenter()
-        
-    def boundedMoveVertex(self, pos):
-        index, shape, shapeIndex = self.hVertex, self.hShape, self.hShapeIndex
-        point = shape.points[index]
-        # if self.outOfPixmap(pos):
-            # pos = self.intersectionPoint(point, pos)
-        if shape.shape_type == "line":
-            tmpPos = QPointF(pos.x(), 0)
-            move = tmpPos - point
-            shape.moveAllVertexBy(move)
-            for box in self.kanaBoxes[shapeIndex]:
-                box.moveAllVertexBy(move)
-        # else:
-            # shape.moveAllVertexBy(pos - point)
+
+    def setKanaBoxOffset(self, move):
+        for line in self.row_lines:
+            line.moveAllVertexBy(move)
+
+    def setKanaBoxSize(self, sizeDif):
+        move = QPointF(sizeDif, 0)
+        # take odd index of col line
+        for i in range(1, len(self.col_lines), 2):
+            self.col_lines[i].moveAllVertexBy(move)
+        move = QPointF(0, sizeDif)
+        # first of the row line is used to define the top of the bubble
+        for i in range(1, len(self.row_lines)):
+            self.row_lines[i].moveAllVertexBy(move * i)
     
-    def boundedMoveShapes(self, pos):
-        self.hShape.moveAllVertexBy(pos - self.prevPoint)
+    def boundedMoveLine(self, pos):
+        shape, type, shapeIndex = self.hShape, self.hType, self.hShapeIndex
+        point = shape.points[0]
+        if shape.shape_type == "line":
+            move = pos - point
+            if type == 'col':
+                move.setY(0.0)
+                if shapeIndex%2 == 0:
+                    shape.moveAllVertexBy(move)
+                    self.col_lines[shapeIndex + 1].moveAllVertexBy(move)
+                else:
+                    self.setKanaBoxSize(move.x())
+            elif type == 'row':
+                move.setX(0.0)
+                self.setKanaBoxOffset(move)
+    
+    # def boundedMoveShapes(self, pos):
+        # self.hShape.moveAllVertexBy(pos - self.prevPoint)
     
     def outOfPixmap(self, p):    
         w, h = self.pixmap.width(), self.pixmap.height()
         return not (0 <= p.x() <= w - 1 and 0 <= p.y() <= h - 1)
         
     def selectShapePoint(self, point):
+        if self.prevhShape:
+            self.prevhShape.selected = False
+            self.prevhShape = None
         # A vertex is marked for selection.
-        if self.selectedVertex():  
-            index, shape, shapeIndex = self.hVertex, self.hShape, self.hShapeIndex
-            shape.highlightVertex(index, shape.MOVE_VERTEX)
-        # else:
-            # for boxes in self.kanaBoxes:
-                # for box in boxes:
-                    # if box.containsPoint(point):
-                        # self.selectionChanged.emit([box])
-                        # return
-        # self.deSelectShape()
-        
-    # def deSelectShape(self):
-        # self.selectionChanged.emit([])
-        # self.update()
+        if self.selectedLine():  
+            self.prevhShape = self.hShape
+            shape, type, shapeIndex = self.hShape, self.hType, self.hShapeIndex
+            shape.selected = True
     
-    def selectedVertex(self):
-        return self.hVertex is not None
+    def selectedLine(self):
+        return self.hShape is not None
     
     def resizeEvent(self, event):
         ratio_w = event.size().width() / self.box['width']
         ratio_h = event.size().height() / self.box['height']
         self.scale = min(ratio_w, ratio_h)
+        # self.thres = self.defaultThres / (self.pt_scale * self.scale)
         self.update()    
     
 
@@ -400,67 +361,65 @@ class SubWindow(QtWidgets.QMainWindow):
         self.menu = QtWidgets.QMenu()
         
         action = functools.partial(labelme.utils.newAction, self)
-        measureMode = action(
-            self.tr("Measure Box Size"),
-            self.ppppp,
-            None,
-            "objects",
-            self.tr("Measure Box Size"),
-            enabled=True,
-        )
-        self.menu.addAction(measureMode)
+        # measureMode = action(
+            # self.tr("Measure Box Size"),
+            # self.ppppp,
+            # None,
+            # "objects",
+            # self.tr("Measure Box Size"),
+            # enabled=True,
+        # )
+        # self.menu.addAction(measureMode)
         
-        self.ifSelectLine = action(
-            self.tr('Select Sep Line'), 
-            self.setCanvasViewState,
-            None, 
-            checkable=True, 
-            checked=True)
-        self.ifSelectBox = action(
-            self.tr('Select Text Box'), 
-            self.setCanvasViewState,
-            None, 
-            checkable=True, 
-            checked=True)
-        self.ifShowLine = action(
-            self.tr('Show Sep Line'), 
-            self.setCanvasViewState,
-            None, 
-            checkable=True, 
-            checked=True)
-        self.ifShowBox = action(
-            self.tr('Show Text Box'), 
-            self.setCanvasViewState,
-            None, 
-            checkable=True, 
-            checked=True)
+        # self.ifSelectLine = action(
+            # self.tr('Select Sep Line'), 
+            # self.setCanvasViewState,
+            # None, 
+            # checkable=True, 
+            # checked=True)
+        # self.ifSelectBox = action(
+            # self.tr('Select Text Box'), 
+            # self.setCanvasViewState,
+            # None, 
+            # checkable=True, 
+            # checked=True)
+        # self.ifShowLine = action(
+            # self.tr('Show Sep Line'), 
+            # self.setCanvasViewState,
+            # None, 
+            # checkable=True, 
+            # checked=True)
+        # self.ifShowBox = action(
+            # self.tr('Show Text Box'), 
+            # self.setCanvasViewState,
+            # None, 
+            # checkable=True, 
+            # checked=True)
         
         # on the top of window
-        menuBar = self.menuBar()
-        tmpMenu = menuBar.addMenu('View')
-        tmpMenu.addAction(self.ifSelectLine)
-        tmpMenu.addAction(self.ifSelectBox)
-        tmpMenu.addAction(self.ifShowLine)
-        tmpMenu.addAction(self.ifShowBox)
+        # menuBar = self.menuBar()
+        # tmpMenu = menuBar.addMenu('View')
+        # tmpMenu.addAction(self.ifSelectLine)
+        # tmpMenu.addAction(self.ifSelectBox)
+        # tmpMenu.addAction(self.ifShowLine)
+        # tmpMenu.addAction(self.ifShowBox)
         
         self.setCentralWidget(self.canvas)
         self.canvas.menu = self.menu
         
-    def ppppp(self):
-        print(123456)
     def initialize(self, pixmap, np_image, pos, rect):
         self.canvas.initialize(pixmap, np_image, pos, rect)
         area = super(SubWindow, self).size()
         aw, ah = area.width(), area.height()
         self.move(pos - QtCore.QPoint(area.width(), 0))
-    def tmp(self, lines, size, gap, reset=False):
-        self.canvas.tmp(lines, size, gap, reset)
-    def setCanvasViewState(self):
-        self.canvas.ifSelectLine = self.ifSelectLine.isChecked()
-        self.canvas.ifSelectBox = self.ifSelectBox.isChecked()
-        self.canvas.ifShowLine = self.ifShowLine.isChecked()
-        self.canvas.ifShowBox = self.ifShowBox.isChecked()
-        self.canvas.update()
+    def generateGrid(self, cols, rows, reset=False):
+        self.canvas.generateGrid(cols, rows, reset)
+    # def setCanvasViewState(self):
+        # self.canvas.ifSelectLine = self.ifSelectLine.isChecked()
+        # self.canvas.ifSelectBox = self.ifSelectBox.isChecked()
+        # self.canvas.ifShowLine = self.ifShowLine.isChecked()
+        # self.canvas.ifShowBox = self.ifShowBox.isChecked()
+        # self.canvas.update()
     
 class LabelQLineEdit(QtWidgets.QLineEdit):
     def setListWidget(self, list_widget):
@@ -543,47 +502,32 @@ class LabelDialog(QtWidgets.QDialog):
         text_box_set = QtWidgets.QVBoxLayout()
         ## column of text
         tmpHor = QtWidgets.QHBoxLayout()
-        self.lines = QtWidgets.QLineEdit("4")
-        self.lines.setPlaceholderText("")
-        self.lines.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp(r"\d*"), None))
+        self.text_cols = QtWidgets.QLineEdit("4")
+        self.text_cols.setPlaceholderText("")
+        self.text_cols.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp(r"\d*"), None))
         # label
-        self.linesLabel = QLabel("Column of Text")
-        self.linesLabel.setAlignment(Qt.AlignLeft)
-        tmpHor.addWidget(self.linesLabel, 5)
-        tmpHor.addWidget(self.lines, 5)
+        self.text_cols_label = QLabel("Columns of Text")
+        self.text_cols_label.setAlignment(Qt.AlignLeft)
+        tmpHor.addWidget(self.text_cols_label, 5)
+        tmpHor.addWidget(self.text_cols, 5)
         # add to ui group
-        self.text_box_ui.append(self.linesLabel)
-        self.text_box_ui.append(self.lines)
-        text_box_set.addLayout(tmpHor)
+        self.text_box_ui.append(self.text_cols_label)
+        self.text_box_ui.append(self.text_cols)
+        text_box_set.addLayout(tmpHor)        
         
-        ## gep between each column
+        ## rows of text
         tmpHor = QtWidgets.QHBoxLayout()
-        self.textGap = QtWidgets.QLineEdit("1")
-        self.textGap.setPlaceholderText("")
-        self.textGap.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp(r"\d*"), None))
+        self.text_rows = QtWidgets.QLineEdit("4")
+        self.text_rows.setPlaceholderText("")
+        self.text_rows.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp(r"\d*"), None))
         # label
-        self.textGapLabel = QLabel("Gap Between Text ")
-        self.textGapLabel.setAlignment(Qt.AlignLeft)
-        tmpHor.addWidget(self.textGapLabel, 5)
-        tmpHor.addWidget(self.textGap, 5)       
+        self.text_rows_label = QLabel("Rows of Text")
+        self.text_rows_label.setAlignment(Qt.AlignLeft)
+        tmpHor.addWidget(self.text_rows_label, 5)
+        tmpHor.addWidget(self.text_rows, 5)
         # add to ui group
-        self.text_box_ui.append(self.textGapLabel)
-        self.text_box_ui.append(self.colGap)
-        text_box_set.addLayout(tmpHor)
-        
-        ## box size
-        tmpHor = QtWidgets.QHBoxLayout()
-        self.boxSize = QtWidgets.QLineEdit("19")
-        self.boxSize.setPlaceholderText("")
-        self.boxSize.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp(r"\d*"), None))
-        # label
-        self.boxSizeLabel = QLabel("Box Size")
-        self.boxSizeLabel.setAlignment(Qt.AlignLeft)
-        tmpHor.addWidget(self.boxSizeLabel, 5)
-        tmpHor.addWidget(self.boxSize, 5)
-        # add to ui group
-        self.text_box_ui.append(self.boxSizeLabel)
-        self.text_box_ui.append(self.boxSize)
+        self.text_box_ui.append(self.text_rows_label)
+        self.text_box_ui.append(self.text_rows)
         text_box_set.addLayout(tmpHor)
         
         ## generate button
@@ -804,7 +748,10 @@ class LabelDialog(QtWidgets.QDialog):
         return result_text, result_flag, result_groupid, None
     
     def setTextBoxAttribute(self):
-        self.sub_window.tmp(int("0" + self.lines.text()), int("0" + self.boxSize.text()), int("0" + self.colGap.text()))
+        self.sub_window.generateGrid(int("0" + self.text_cols.text()), int("0" + self.text_rows.text()))
+    
+    def resetTextBoxAttribute(self):
+        self.sub_window.generateGrid(int("0" + self.text_cols.text()), int("0" + self.text_rows.text()), reset=True)
     
     def sl_valuechange(self):
         self.app.canvas.setMinAreaValue(self.sl.value())

@@ -3,6 +3,7 @@ import math
 
 from qtpy import QtCore
 from qtpy import QtGui
+from qtpy.QtCore import QPointF
 
 import labelme.utils
 
@@ -278,7 +279,7 @@ class Shape(object):
         self.vertex_fill_color = QtGui.QColor(r, g, b)
         self.hvertex_fill_color = QtGui.QColor(255, 255, 255)
         self.fill_color = QtGui.QColor(r, g, b, 128)
-        self.select_line_color = QtGui.QColor(255, 255, 255)
+        self.select_line_color = QtGui.QColor(255, 153, 0)
         self.select_fill_color = QtGui.QColor(r, g, b, 155)
     
     def isWhiteRect(self, np_image, offset_x=0, offset_y=0):
@@ -287,6 +288,25 @@ class Shape(object):
                 if np_image[y + offset_y][x + offset_x] == 0:
                     return False
         return True
+        
+    # def highlightClosest(self, action):
+        
+    
+    # def highlightSelected(self):
+    
+    # for line used
+    def distance(self, pos, eps):
+        if self.shape_type == 'line':
+            p0 = self.points[0]
+            p1 = self.points[1]
+            
+            vec1 = p1 - p0
+            vec2 = pos - p0
+            
+            dis = ((QPointF.dotProduct(vec1, vec2) / QPointF.dotProduct(vec1, vec1)) * vec1 - vec2).manhattanLength()
+            if dis <= eps:
+                return dis
+        return None
     
     def __len__(self):
         return len(self.points)
