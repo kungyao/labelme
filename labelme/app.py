@@ -361,9 +361,9 @@ class MainWindow(QtWidgets.QMainWindow):
             enabled=False,
         )        
         createTextGrid = action(
-            self.tr("TMP"),
+            self.tr("Create Text Grid"),
             self.createTextGrid,
-            None,
+            shortcuts["create_text_grid"],
             "objects",
             self.tr(""),
             enabled=False,
