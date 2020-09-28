@@ -689,7 +689,7 @@ class LabelDialog(QtWidgets.QDialog):
         return None
 
     def popUp(self, text=None, move=True, flags=None, group_id=None, mode=None, shape=None):
-        f = mode == 'cc_rectangle' or mode == 'create_cc_region'
+        f = mode == 'cc_rectangle' or mode == 'create_cc_region' or mode == 'cc_in_rectangle'
         for item in self.cc_threshold_ui:
             item.setVisible(f)
         f = mode == 'text_grid'
