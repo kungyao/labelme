@@ -14,7 +14,7 @@ import labelme.utils
 
 DEFAULT_LINE_COLOR = QtGui.QColor(0, 255, 0, 128)  # bf hovering
 DEFAULT_FILL_COLOR = QtGui.QColor(0, 255, 0, 128)  # hovering
-DEFAULT_SELECT_LINE_COLOR = QtGui.QColor(255, 255, 255)  # selected
+DEFAULT_SELECT_LINE_COLOR = QtGui.QColor(255, 153, 0)  # selected
 DEFAULT_SELECT_FILL_COLOR = QtGui.QColor(0, 255, 0, 155)  # selected
 DEFAULT_VERTEX_FILL_COLOR = QtGui.QColor(0, 255, 0, 255)  # hovering
 DEFAULT_HVERTEX_FILL_COLOR = QtGui.QColor(255, 255, 255, 255)  # hovering
@@ -290,13 +290,7 @@ class Shape(object):
                 if np_image[y + offset_y][x + offset_x] == 0:
                     return False
         return True
-        
-    # def highlightClosest(self, action):
-        
-    
-    # def highlightSelected(self):
-    
-    # for line used
+
     def distance(self, pos, eps):
         if self.shape_type == 'line':
             p0 = self.points[0]

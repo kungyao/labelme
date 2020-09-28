@@ -952,6 +952,9 @@ class MainWindow(QtWidgets.QMainWindow):
             return items[0]
         return None
 
+    def currentItems(self):
+        return self.labelList.selectedItems()
+
     def addRecentFile(self, filename):
         if filename in self.recentFiles:
             self.recentFiles.remove(filename)
@@ -1050,17 +1053,19 @@ class MainWindow(QtWidgets.QMainWindow):
         return False
 
     def editLabel(self, item=None):
+        items = []
         if item and not isinstance(item, LabelListWidgetItem):
             raise TypeError("item must be LabelListWidgetItem type")
         if not self.canvas.editing():
             return
         if not item:
-            item = self.currentItem()
-        if item is None:
+            items = self.currentItems()
+        else:
+            items = [item]
+        if len(items) == 0:
             return
-        shape = item.shape()
-        if shape is None:
-            return
+        # get last choose shape data
+        shape = items[-1].shape()
         text, flags, group_id, _ = self.labelDialog.popUp(
             text=shape.label, flags=shape.flags, group_id=shape.group_id,
         )
@@ -1074,20 +1079,22 @@ class MainWindow(QtWidgets.QMainWindow):
                 ),
             )
             return
-        shape.label = text
-        shape.flags = flags
-        shape.group_id = group_id
-        # update color
-        rgb = self._get_rgb_by_label(shape.label)
-        shape.setColor(rgb[0], rgb[1], rgb[2])
-        if shape.group_id is None:
-            item.setText(shape.label)
-        else:
-            item.setText("{} ({})".format(shape.label, shape.group_id))
-        if not self.uniqLabelList.findItemsByLabel(shape.label):
-            item = QtWidgets.QListWidgetItem()
-            item.setData(Qt.UserRole, shape.label)
-            self.uniqLabelList.addItem(item)
+        for item in items:
+            shape = item.shape()
+            shape.label = text
+            shape.flags = flags
+            shape.group_id = group_id
+            # update color
+            rgb = self._get_rgb_by_label(shape.label)
+            shape.setColor(rgb[0], rgb[1], rgb[2])
+            if shape.group_id is None:
+                item.setText(shape.label)
+            else:
+                item.setText("{} ({})".format(shape.label, shape.group_id))
+            if not self.uniqLabelList.findItemsByLabel(shape.label):
+                item = QtWidgets.QListWidgetItem()
+                item.setData(Qt.UserRole, shape.label)
+                self.uniqLabelList.addItem(item)
         self.setDirty()
 
     def fileSearchChanged(self):
@@ -1116,8 +1123,15 @@ class MainWindow(QtWidgets.QMainWindow):
         for shape in self.canvas.selectedShapes:
             shape.selected = False
         self.labelList.clearSelection()
+        # label = None
+        # isSameLabel = False
         self.canvas.selectedShapes = selected_shapes
         for shape in self.canvas.selectedShapes:
+            # if not label:
+                # isSameLabel = True
+                # label = shape.label
+            # elif label != shape.label:
+                # isSameLabel = False
             shape.selected = True
             item = self.labelList.findItemByShape(shape)
             self.labelList.selectItem(item)
@@ -1126,7 +1140,9 @@ class MainWindow(QtWidgets.QMainWindow):
         n_selected = len(selected_shapes)
         self.actions.delete.setEnabled(n_selected)
         self.actions.copy.setEnabled(n_selected)
-        self.actions.edit.setEnabled(n_selected == 1)
+        # self.actions.edit.setEnabled(n_selected == 1)
+        # self.actions.edit.setEnabled(isSameLabel)
+        self.actions.edit.setEnabled(n_selected)
         self.actions.createCCMode.setEnabled(n_selected)
         self.actions.createTextGrid.setEnabled(n_selected == 1)
 
