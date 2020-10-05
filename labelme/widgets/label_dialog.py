@@ -161,7 +161,6 @@ class MyCanvas(QtWidgets.QWidget):
             ))
         
         self.row_lines = []
-        # add bottom line to bound the text area
         for i in range(rows + 1):
             # main line
             y = defaultBoxSize * i
@@ -171,13 +170,23 @@ class MyCanvas(QtWidgets.QWidget):
                 self.pt_scale,
                 color=(0, 0, 255)
             ))
-            # # constrain line
-            # y = y + defaultBoxSize
+            
+        # for i in range(rows):
+            # # main line
+            # y = defaultBoxSize * i
             # self.row_lines.append(createLine(
                 # QPointF(0, y),
                 # QPointF(w, y),
                 # self.pt_scale,
                 # color=(0, 0, 255)
+            # ))
+            # # # constrain line
+            # y = y + defaultBoxSize
+            # self.row_lines.append(createLine(
+                # QPointF(0, y),
+                # QPointF(w, y),
+                # self.pt_scale,
+                # color=(0, 255, 255)
             # ))
                 
         self.cols = cols
@@ -200,6 +209,7 @@ class MyCanvas(QtWidgets.QWidget):
             offset_y = self.box['ymin']
 
             size = abs(self.col_lines[0].points[0].x() - self.col_lines[1].points[0].x())
+            # for i in range(0, len(self.row_lines), 2):
             for i in range(0, len(self.row_lines) - 1):
                 y = self.row_lines[i].points[0].y() + offset_y
                 for j in range(0, len(self.col_lines), 2):
@@ -295,7 +305,9 @@ class MyCanvas(QtWidgets.QWidget):
                     break
             else: # nothing found go through
                 # select offset line (blue)
-                for i, line in enumerate(self.row_lines):
+                # for i in range(0, len(self.row_lines), 2):
+                for i in range(1, len(self.row_lines), 1):
+                    line = self.row_lines[i]
                     dis = line.distance(pos, self.thres)
                     if dis is not None:
                         self.hShape = line
@@ -335,19 +347,36 @@ class MyCanvas(QtWidgets.QWidget):
         """Convert from widget-logical coordinates to painter-logical ones."""
         return point / self.scale - self.offsetToCenter()
 
-    def setKanaBoxOffset(self, move):
+    # move blue line vertically
+    def setKanaBoxOffset(self, move, shape, index):      
+        # shape.moveAllVertexBy(move)
+        # self.row_lines[index + 1].moveAllVertexBy(move)
+        
+        # if index != 0:
+            # prevIndex = index - 1
+            # move2 = self.row_lines[prevIndex].points[0] - shape.points[0]
+            # move.setY(max(move2.y(), move.y()))
+            
+            # shape.moveAllVertexBy(move)
+            # self.row_lines[index + 1].moveAllVertexBy(move)
+        # else:
+            # shape.moveAllVertexBy(move)
+            # self.row_lines[index + 1].moveAllVertexBy(move)
+            
         for line in self.row_lines:
             line.moveAllVertexBy(move)
-
+        
     def setKanaBoxSize(self, sizeDif):
         move = QPointF(sizeDif, 0)
         # take odd index of col line
         for i in range(1, len(self.col_lines), 2):
             self.col_lines[i].moveAllVertexBy(move)
         move = QPointF(0, sizeDif)
-        # first of the row line is used to define the top of the bubble
+        # first of the row line is used to define the top of the bubble /  * (i/2+1)
         for i in range(1, len(self.row_lines)):
             self.row_lines[i].moveAllVertexBy(move * i)
+        # for i in range(1, len(self.row_lines), 2):
+            # self.row_lines[i].moveAllVertexBy(move)
     
     def boundedMoveLine(self, pos):
         shape, type, shapeIndex = self.hShape, self.hType, self.hShapeIndex
@@ -363,14 +392,14 @@ class MyCanvas(QtWidgets.QWidget):
                     self.setKanaBoxSize(move.x())
             elif type == 'row':
                 move.setX(0.0)
-                self.setKanaBoxOffset(move)
+                self.setKanaBoxOffset(move, shape, shapeIndex)
     
     # def boundedMoveShapes(self, pos):
         # self.hShape.moveAllVertexBy(pos - self.prevPoint)
     
-    def outOfPixmap(self, p):    
-        w, h = self.pixmap.width(), self.pixmap.height()
-        return not (0 <= p.x() <= w - 1 and 0 <= p.y() <= h - 1)
+    # def outOfPixmap(self, p):    
+        # w, h = self.pixmap.width(), self.pixmap.height()
+        # return not (0 <= p.x() <= w - 1 and 0 <= p.y() <= h - 1)
         
     def selectShapePoint(self, point):
         if self.prevhShape:
@@ -412,11 +441,15 @@ class SubWindow(QtWidgets.QMainWindow):
         
         self.setCentralWidget(self.canvas)
         self.canvas.menu = self.menu
+        
+        self.moveVal = QtCore.QPoint(0, 0)
+        
     def initialize(self, pixmap, np_image, pos, rect):
         self.canvas.initialize(pixmap, np_image, pos, rect)
         area = super(SubWindow, self).size()
         aw, ah = area.width(), area.height()
-        self.move(pos - QtCore.QPoint(area.width(), 0))
+        self.moveVal = pos - QtCore.QPoint(area.width(), 0)
+        # self.move(pos - QtCore.QPoint(area.width(), 0))
     def generateGrid(self, cols, rows, reset=False):
         self.canvas.generateGrid(cols, rows, reset)
     def toShape(self, ifClean=True):
@@ -733,6 +766,7 @@ class LabelDialog(QtWidgets.QDialog):
         if mode == 'text_grid':
             self.sub_window.initialize(pixmap=self.app.canvas.pixmap, np_image=self.app.np_image, pos=self.pos(), rect=shape)
             self.sub_window.show()
+            self.sub_window.move(self.sub_window.moveVal)
         
         result_text = None
         result_flag = None
