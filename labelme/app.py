@@ -612,7 +612,7 @@ class MainWindow(QtWidgets.QMainWindow):
             createMode=createMode,
             editMode=editMode,
             createRectangleMode=createRectangleMode,
-            createCCSelectMode=createCCSelectMode,
+            # createCCSelectMode=createCCSelectMode,
             createMergeShapeMode=createMergeShapeMode,
             createTextGrid=createTextGrid,
             createCircleMode=createCircleMode,
@@ -649,7 +649,7 @@ class MainWindow(QtWidgets.QMainWindow):
             menu=(
                 createMode,
                 createRectangleMode,
-                createCCSelectMode,
+                # createCCSelectMode,
                 createCCMode,
                 createMergeShapeMode,
                 createTextGrid,
@@ -670,7 +670,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 close,
                 createMode,
                 createRectangleMode,
-                createCCSelectMode,
+                # createCCSelectMode,
                 createMergeShapeMode,
                 createTextGrid,
                 createCircleMode,
@@ -871,7 +871,7 @@ class MainWindow(QtWidgets.QMainWindow):
         actions = (
             self.actions.createMode,
             self.actions.createRectangleMode,
-            self.actions.createCCSelectMode,
+            # self.actions.createCCSelectMode,
             self.actions.createCCMode,
             self.actions.createMergeShapeMode,
             self.actions.createTextGrid,
@@ -904,7 +904,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actions.save.setEnabled(False)
         self.actions.createMode.setEnabled(True)
         self.actions.createRectangleMode.setEnabled(True)
-        self.actions.createCCSelectMode.setEnabled(True)
+        # self.actions.createCCSelectMode.setEnabled(True)
         self.actions.createCircleMode.setEnabled(True)
         self.actions.createLineMode.setEnabled(True)
         self.actions.createPointMode.setEnabled(True)
@@ -990,7 +990,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # set to default value
         self.actions.createMode.setEnabled(True)
         self.actions.createRectangleMode.setEnabled(True)
-        self.actions.createCCSelectMode.setEnabled(True)
+        # self.actions.createCCSelectMode.setEnabled(True)
         self.actions.createCircleMode.setEnabled(True)
         self.actions.createLineMode.setEnabled(True)
         self.actions.createPointMode.setEnabled(True)
@@ -1009,8 +1009,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.actions.createCircleMode.setEnabled(False)
             elif createMode == "linestrip":
                 self.actions.createLineStripMode.setEnabled(False)
-            elif createMode == "cc_rectangle":
-                self.actions.createCCSelectMode.setEnabled(False)
+            # elif createMode == "cc_rectangle":
+                # self.actions.createCCSelectMode.setEnabled(False)
             elif createMode == "merge_rectangle":
                 self.actions.createMergeShapeMode.setEnabled(False)
             else:
