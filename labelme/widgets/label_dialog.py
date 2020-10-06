@@ -306,7 +306,7 @@ class MyCanvas(QtWidgets.QWidget):
             else: # nothing found go through
                 # select offset line (blue)
                 # for i in range(0, len(self.row_lines), 2):
-                for i in range(1, len(self.row_lines), 1):
+                for i in range(0, len(self.row_lines), 1):
                     line = self.row_lines[i]
                     dis = line.distance(pos, self.thres)
                     if dis is not None:
