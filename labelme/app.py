@@ -1095,6 +1095,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 item = QtWidgets.QListWidgetItem()
                 item.setData(Qt.UserRole, shape.label)
                 self.uniqLabelList.addItem(item)
+        # clear selected item
+        self.labelList.clearSelection()
         self.setDirty()
 
     def fileSearchChanged(self):
@@ -1393,7 +1395,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.canvas.storeShapes()
                 self.canvas.update()
                 self.setDirty()
-    
+
+        # clear selected item
+        self.labelList.clearSelection()
+
     # Callback functions:
     def newShape(self):
         """Pop-up and give focus to the label editor.
