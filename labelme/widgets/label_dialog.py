@@ -58,6 +58,8 @@ class MyCanvas(QtWidgets.QWidget):
         self.defaultThres = 20
         self.thres = 20
 
+        self.leftBoundary = self.rightBoundary = self.topBoundary = self.bottomBoundary = False
+
     def initialize(self, pixmap, np_image, pos, rect):
         self.scale = 1.0
         self.pixmap = pixmap
@@ -88,11 +90,11 @@ class MyCanvas(QtWidgets.QWidget):
         
         self.cols = 0
         self.rows = 0
-        
+
         self.col_lines = []
         self.row_lines = []
         self.hShape = self.hType = self.hShapeIndex = None
-        self.prevhShape = None
+        self.prevhShape = self.prevhShapeIndex = None
         self.update()
     
     def clean(self):
@@ -103,7 +105,7 @@ class MyCanvas(QtWidgets.QWidget):
         self.row_lines = []
         
         self.hShape = self.hType = self.hShapeIndex = None
-        self.prevhShape = None
+        self.prevhShape = self.prevhShapeIndex = None
         self.movingShape = False
         
         self.cols = self.rows = 0
@@ -160,8 +162,21 @@ class MyCanvas(QtWidgets.QWidget):
                 color=(255, 0, 0)
             ))
         
+        # set row
+        defaultColGap = 2
+        defaultBoxSize = rowStep - defaultColGap
         self.row_lines = []
-        for i in range(rows + 1):
+        # for i in range(rows + 1):
+        #     # main line
+        #     y = defaultBoxSize * i
+        #     self.row_lines.append(createLine(
+        #         QPointF(0, y),
+        #         QPointF(w, y),
+        #         self.pt_scale,
+        #         color=(0, 0, 255)
+        #     ))
+            
+        for i in range(rows):
             # main line
             y = defaultBoxSize * i
             self.row_lines.append(createLine(
@@ -170,24 +185,14 @@ class MyCanvas(QtWidgets.QWidget):
                 self.pt_scale,
                 color=(0, 0, 255)
             ))
-            
-        # for i in range(rows):
-            # # main line
-            # y = defaultBoxSize * i
-            # self.row_lines.append(createLine(
-                # QPointF(0, y),
-                # QPointF(w, y),
-                # self.pt_scale,
-                # color=(0, 0, 255)
-            # ))
-            # # # constrain line
-            # y = y + defaultBoxSize
-            # self.row_lines.append(createLine(
-                # QPointF(0, y),
-                # QPointF(w, y),
-                # self.pt_scale,
-                # color=(0, 255, 255)
-            # ))
+            # # constrain line
+            y = y + defaultBoxSize
+            self.row_lines.append(createLine(
+                QPointF(0, y),
+                QPointF(w, y),
+                self.pt_scale,
+                color=(0, 255, 255)
+            ))
                 
         self.cols = cols
         self.rows = rows
@@ -208,15 +213,20 @@ class MyCanvas(QtWidgets.QWidget):
             offset_x = self.box['xmin']
             offset_y = self.box['ymin']
 
-            size = abs(self.col_lines[0].points[0].x() - self.col_lines[1].points[0].x())
             # for i in range(0, len(self.row_lines), 2):
-            for i in range(0, len(self.row_lines) - 1):
-                y = self.row_lines[i].points[0].y() + offset_y
+            for i in range(0, len(self.row_lines), 2):
                 for j in range(0, len(self.col_lines), 2):
-                    x = self.col_lines[j].points[0].x() + offset_x
+                    topLeft = QPointF(
+                        self.col_lines[j].points[0].x() + offset_x, 
+                        self.row_lines[i].points[0].y() + offset_y
+                    )
+                    bottomRight = QPointF(
+                        self.col_lines[j + 1].points[0].x() + offset_x, 
+                        self.row_lines[i + 1].points[0].y() + offset_y
+                    )
                     shape = createRectangle(
-                        QPointF(x, y),
-                        QPointF(x + size, y + size),
+                        topLeft,
+                        bottomRight,
                     )
                     if not shape.isWhiteRect(self.np_image):
                         shapes.append(shape)
@@ -278,21 +288,19 @@ class MyCanvas(QtWidgets.QWidget):
             return
         
         self.prevPoint = pos
-        
-        colLineSize = len(self.col_lines)
+        self.hShape = self.hType = self.hShapeIndex = None
         # select main col line (green)
-        for i in range(0, len(self.col_lines), 2):
-            line = self.col_lines[i]
-            dis = line.distance(pos, self.thres)
-            if dis is not None:
-                self.hShape = line
-                self.hType = 'col'
-                self.hShapeIndex = i
-                # line.highlightClosest(line.MOVE_VERTEX)
-                self.update()
-                break
-        else: # nothing found go through
-            # select constrain col line (red)
+        if self.leftBoundary:
+            for i in range(0, len(self.col_lines), 2):
+                line = self.col_lines[i]
+                dis = line.distance(pos, self.thres)
+                if dis is not None:
+                    self.hShape = line
+                    self.hType = 'col'
+                    self.hShapeIndex = i
+                    break
+        # select constrain col line (red)
+        elif self.rightBoundary:
             for i in range(1, len(self.col_lines), 2):
                 line = self.col_lines[i]
                 dis = line.distance(pos, self.thres)
@@ -300,27 +308,28 @@ class MyCanvas(QtWidgets.QWidget):
                     self.hShape = line
                     self.hType = 'col'
                     self.hShapeIndex = i
-                    # line.highlightClosest(line.MOVE_VERTEX)
-                    self.update()
                     break
-            else: # nothing found go through
-                # select offset line (blue)
-                # for i in range(0, len(self.row_lines), 2):
-                for i in range(0, len(self.row_lines), 1):
-                    line = self.row_lines[i]
-                    dis = line.distance(pos, self.thres)
-                    if dis is not None:
-                        self.hShape = line
-                        self.hType = 'row'
-                        self.hShapeIndex = i
-                        # line.highlightClosest(line.MOVE_VERTEX)
-                        self.update()
-                        break
-                else: # nothing found go through
-                    if self.hShape:
-                        self.update()
-                    self.hShape = self.hType = self.hShapeIndex = None
-        
+        # select offset line (blue)
+        elif self.topBoundary:
+            for i in range(0, len(self.row_lines), 2):
+                line = self.row_lines[i]
+                dis = line.distance(pos, self.thres)
+                if dis is not None:
+                    self.hShape = line
+                    self.hType = 'row'
+                    self.hShapeIndex = i
+                    break
+        # select constrain line (blue)
+        elif self.bottomBoundary:
+            for i in range(1, len(self.row_lines), 2):
+                line = self.row_lines[i]
+                dis = line.distance(pos, self.thres)
+                if dis is not None:
+                    self.hShape = line
+                    self.hType = 'row'
+                    self.hShapeIndex = i
+                    break
+
     def mousePressEvent(self, event):
         try:
             if QT5:
@@ -329,17 +338,17 @@ class MyCanvas(QtWidgets.QWidget):
                 pos = self.transformPos(event.posF())
         except AttributeError:
             return
-            
+        
         if event.button() == QtCore.Qt.LeftButton:
             self.selectShapePoint(pos)
             # self.prevPoint = pos
             self.update()
     
     def mouseReleaseEvent(self, event):
-        # if event.button() == QtCore.Qt.RightButton:
-            # menu = self.menu
-            # menu.exec_(self.mapToGlobal(event.pos()))
-            # QtWidgets.QApplication.restoreOverrideCursor()
+        if event.button() == QtCore.Qt.RightButton:
+            menu = self.menu
+            menu.exec_(self.mapToGlobal(event.pos()))
+            QtWidgets.QApplication.restoreOverrideCursor()
         if self.movingShape and self.hShape:
             self.movingShape = False
     
@@ -348,36 +357,20 @@ class MyCanvas(QtWidgets.QWidget):
         return point / self.scale - self.offsetToCenter()
 
     # move blue line vertically
-    def setKanaBoxOffset(self, move, shape, index):      
-        # shape.moveAllVertexBy(move)
-        # self.row_lines[index + 1].moveAllVertexBy(move)
+    def moveRowLine(self, move, shape, index):
+        if index%2 == 1:
+            shape.moveAllVertexBy(move)
+        else:
+            shape.moveAllVertexBy(move)
+            self.row_lines[index + 1].moveAllVertexBy(move)
         
-        # if index != 0:
-            # prevIndex = index - 1
-            # move2 = self.row_lines[prevIndex].points[0] - shape.points[0]
-            # move.setY(max(move2.y(), move.y()))
-            
-            # shape.moveAllVertexBy(move)
-            # self.row_lines[index + 1].moveAllVertexBy(move)
-        # else:
-            # shape.moveAllVertexBy(move)
-            # self.row_lines[index + 1].moveAllVertexBy(move)
-            
-        for line in self.row_lines:
-            line.moveAllVertexBy(move)
-        
-    def setKanaBoxSize(self, sizeDif):
-        move = QPointF(sizeDif, 0)
-        # take odd index of col line
-        for i in range(1, len(self.col_lines), 2):
-            self.col_lines[i].moveAllVertexBy(move)
-        move = QPointF(0, sizeDif)
-        # first of the row line is used to define the top of the bubble /  * (i/2+1)
-        for i in range(1, len(self.row_lines)):
-            self.row_lines[i].moveAllVertexBy(move * i)
-        # for i in range(1, len(self.row_lines), 2):
-            # self.row_lines[i].moveAllVertexBy(move)
-    
+    def moveColLine(self, move, shape, index):
+        if index%2 == 1:
+            shape.moveAllVertexBy(move)
+        else:
+            shape.moveAllVertexBy(move)
+            self.col_lines[index + 1].moveAllVertexBy(move)
+
     def boundedMoveLine(self, pos):
         shape, type, shapeIndex = self.hShape, self.hType, self.hShapeIndex
         point = shape.points[0]
@@ -385,32 +378,40 @@ class MyCanvas(QtWidgets.QWidget):
             move = pos - point
             if type == 'col':
                 move.setY(0.0)
-                if shapeIndex%2 == 0:
-                    shape.moveAllVertexBy(move)
-                    self.col_lines[shapeIndex + 1].moveAllVertexBy(move)
-                else:
-                    self.setKanaBoxSize(move.x())
+                self.moveColLine(move, shape, shapeIndex)
             elif type == 'row':
                 move.setX(0.0)
-                self.setKanaBoxOffset(move, shape, shapeIndex)
-    
-    # def boundedMoveShapes(self, pos):
-        # self.hShape.moveAllVertexBy(pos - self.prevPoint)
-    
-    # def outOfPixmap(self, p):    
-        # w, h = self.pixmap.width(), self.pixmap.height()
-        # return not (0 <= p.x() <= w - 1 and 0 <= p.y() <= h - 1)
-        
+                self.moveRowLine(move, shape, shapeIndex)
+
     def selectShapePoint(self, point):
-        if self.prevhShape:
-            self.prevhShape.selected = False
-            self.prevhShape = None
+        self.deselectShape()
         # A vertex is marked for selection.
-        if self.selectedLine():  
-            self.prevhShape = self.hShape
+        if self.selectedLine():
+            self.prevhShape, self.prevhShapeIndex = self.hShape, self.hShapeIndex
             shape, type, shapeIndex = self.hShape, self.hType, self.hShapeIndex
             shape.selected = True
+            if self.leftBoundary:
+                self.col_lines[shapeIndex + 1].selected = True
+            elif self.rightBoundary:
+                self.col_lines[shapeIndex - 1].selected = True
+            elif self.topBoundary:
+                self.row_lines[shapeIndex + 1].selected = True
+            elif self.bottomBoundary:
+                self.row_lines[shapeIndex - 1].selected = True
     
+    def deselectShape(self):
+        if self.prevhShape:
+            self.prevhShape.selected = False
+            if self.leftBoundary:
+                self.col_lines[self.prevhShapeIndex + 1].selected = False
+            elif self.rightBoundary:
+                self.col_lines[self.prevhShapeIndex - 1].selected = False
+            elif self.topBoundary:
+                self.row_lines[self.prevhShapeIndex + 1].selected = False
+            elif self.bottomBoundary:
+                self.row_lines[self.prevhShapeIndex - 1].selected = False
+            self.prevhShape = self.prevhShapeIndex = None
+
     def selectedLine(self):
         return self.hShape is not None
     
@@ -419,7 +420,15 @@ class MyCanvas(QtWidgets.QWidget):
         ratio_h = event.size().height() / self.box['height']
         self.scale = min(ratio_w, ratio_h)
         # self.thres = self.defaultThres / (self.pt_scale * self.scale)
-        self.update()    
+        self.update()
+
+    def setEditMode(self, left, right, top, bottom):
+        self.deselectShape()
+        self.leftBoundary = left
+        self.rightBoundary = right
+        self.topBoundary = top
+        self.bottomBoundary = bottom
+        self.update()
     
 class SubWindow(QtWidgets.QMainWindow):
     def __init__(self, labelDialog=None):
@@ -435,10 +444,43 @@ class SubWindow(QtWidgets.QMainWindow):
 
         self.canvas = MyCanvas(self)
         
+        action = functools.partial(labelme.utils.newAction, self)
         # right click menu
         self.menu = QtWidgets.QMenu()
-        action = functools.partial(labelme.utils.newAction, self)
         
+        self.leftBoundary = action(
+            self.tr('Left Boundary'), 
+            lambda: self.toggleEditMode(mode='left'),
+            None,
+            "objects",
+            enabled=False,
+        )
+        self.rightBoundary = action(
+            self.tr('Right Boundary'), 
+            lambda: self.toggleEditMode(mode='right'),
+            None,
+            "objects",
+            enabled=False,
+        )
+        self.topBoundary = action(
+            self.tr('Top Boundary'), 
+            lambda: self.toggleEditMode(mode='top'),
+            None,
+            "objects",
+            enabled=False,
+        )
+        self.bottomBoundary = action(
+            self.tr('Bottom Boundary'), 
+            lambda: self.toggleEditMode(mode='bottom'),
+            None,
+            "objects",
+            enabled=False,
+        )
+        self.menu.addAction(self.leftBoundary)
+        self.menu.addAction(self.rightBoundary)
+        self.menu.addAction(self.topBoundary)
+        self.menu.addAction(self.bottomBoundary)
+
         self.setCentralWidget(self.canvas)
         self.canvas.menu = self.menu
         
@@ -449,11 +491,34 @@ class SubWindow(QtWidgets.QMainWindow):
         area = super(SubWindow, self).size()
         aw, ah = area.width(), area.height()
         self.moveVal = pos - QtCore.QPoint(area.width(), 0)
-        # self.move(pos - QtCore.QPoint(area.width(), 0))
+        # self.move(self.moveVal)
+        self.toggleEditMode(mode='left')
     def generateGrid(self, cols, rows, reset=False):
         self.canvas.generateGrid(cols, rows, reset)
     def toShape(self, ifClean=True):
         return self.canvas.toShape(ifClean=ifClean)
+    def toggleEditMode(self, mode=None):
+        left = right = top = bottom = False
+        self.leftBoundary.setEnabled(True)
+        self.rightBoundary.setEnabled(True)
+        self.topBoundary.setEnabled(True)
+        self.bottomBoundary.setEnabled(True)
+        if mode == 'left':
+            left = True
+            self.leftBoundary.setEnabled(False)
+        elif mode == 'right':
+            right = True
+            self.rightBoundary.setEnabled(False)
+        elif mode == 'top':
+            top = True
+            self.topBoundary.setEnabled(False)
+        elif mode == 'bottom':
+            bottom = True
+            self.bottomBoundary.setEnabled(False)
+        else:
+            raise ValueError(f"Unsupported createMode: {mode}")
+        # set mode
+        self.canvas.setEditMode(left, right, top, bottom)
 
 class LabelQLineEdit(QtWidgets.QLineEdit):
     def setListWidget(self, list_widget):
@@ -767,6 +832,7 @@ class LabelDialog(QtWidgets.QDialog):
             self.sub_window.initialize(pixmap=self.app.canvas.pixmap, np_image=self.app.np_image, pos=self.pos(), rect=shape)
             self.sub_window.show()
             self.sub_window.move(self.sub_window.moveVal)
+            self.sub_window.update()
         
         result_text = None
         result_flag = None
