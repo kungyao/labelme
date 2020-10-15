@@ -139,7 +139,7 @@ def main():
             "Programming Language :: Python :: Implementation :: CPython",
             "Programming Language :: Python :: Implementation :: PyPy",
         ],
-        package_data={"labelme": ["icons/*", "config/*.yaml"]},
+        package_data={"labelme": ["icons/*", "config/*.yaml", "utils/TextDetection/model/*"]},
         entry_points={
             "console_scripts": [
                 "labelme=labelme.__main__:main",

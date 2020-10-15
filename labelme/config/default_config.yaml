@@ -99,7 +99,8 @@ shortcuts:
   edit_label: Ctrl+E
   toggle_keep_prev_mode: Ctrl+P
   
-  create_cc_rectangle: F1
+  # create_cc_rectangle: F1
+  predict_text_boxes: F1
   create_cc_region: F2
   create_merge_rectangle: F3
   create_text_grid: F4

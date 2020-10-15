@@ -336,13 +336,21 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         # create my rectangle tool  ---------------------------------------------------------------------------------------
         # select the rectangle region and generate the connected component inside the region
-        createCCSelectMode = action(
-            self.tr("Create CC Rectangle"),
-            lambda: self.toggleDrawMode(False, createMode="cc_rectangle"),
-            shortcuts["create_cc_rectangle"],
+        # createCCSelectMode = action(
+        #     self.tr("Create CC Rectangle"),
+        #     lambda: self.toggleDrawMode(False, createMode="cc_rectangle"),
+        #     shortcuts["create_cc_rectangle"],
+        #     "objects",
+        #     self.tr("Create CC Rectangle Inside the drawing Rectangle"),
+        #     enabled=False,            
+        # )
+        predictTextBoxes = action(
+            self.tr("Predict Text Boxes"),
+            self.predictTextBoxes,
+            shortcuts["predict_text_boxes"],
             "objects",
-            self.tr("Create CC Rectangle Inside the drawing Rectangle"),
-            enabled=False,            
+            self.tr("Predict Text Boxes by use of frcnn model"),
+            enabled=False,
         )
         createCCMode = action(
             self.tr("Generate CC Regions"),
@@ -613,6 +621,7 @@ class MainWindow(QtWidgets.QMainWindow):
             editMode=editMode,
             createRectangleMode=createRectangleMode,
             # createCCSelectMode=createCCSelectMode,
+            predictTextBoxes=predictTextBoxes,
             createMergeShapeMode=createMergeShapeMode,
             createTextGrid=createTextGrid,
             createCircleMode=createCircleMode,
@@ -650,6 +659,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createMode,
                 createRectangleMode,
                 # createCCSelectMode,
+                predictTextBoxes,
                 createCCMode,
                 createMergeShapeMode,
                 createTextGrid,
@@ -671,6 +681,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createMode,
                 createRectangleMode,
                 # createCCSelectMode,
+                predictTextBoxes,
                 createMergeShapeMode,
                 createTextGrid,
                 createCircleMode,
@@ -872,6 +883,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actions.createMode,
             self.actions.createRectangleMode,
             # self.actions.createCCSelectMode,
+            self.actions.predictTextBoxes,
             self.actions.createCCMode,
             self.actions.createMergeShapeMode,
             self.actions.createTextGrid,
@@ -1147,6 +1159,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actions.edit.setEnabled(n_selected)
         self.actions.createCCMode.setEnabled(n_selected)
         self.actions.createTextGrid.setEnabled(n_selected == 1)
+        self.actions.predictTextBoxes.setEnabled(n_selected == 1)
 
     def addLabel(self, shape):
         if shape.group_id is None:
@@ -1327,6 +1340,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setDirty()
         self.canvas.loadShapes([item.shape() for item in self.labelList])
 
+    def predictTextBoxes(self):
+        self.setEditMode()
+        selected = self.labelList.selectedItems()
+        if len(selected) == 0:
+            return
+        shape = selected[0].shape()
+        shapes = utils.predict_text_inside_box(self.np_image, shape)
+        if len(shapes) != 0:
+            for shape in shapes:
+                self.canvas.shapes.append(shape)
+                self.addLabel(shape)
+            self.canvas.storeShapes()
+            self.canvas.update()
+            self.setDirty()
+        self.labelList.clearSelection()
+
     def createTextGrid(self):
         self.setEditMode()
         
@@ -1353,7 +1382,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
                 self.canvas.storeShapes()
                 self.canvas.update()
-                self.setDirty()        
+                self.setDirty()
+        self.labelList.clearSelection()
 
     def createCCRegion(self):
         self.setEditMode()
