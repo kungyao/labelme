@@ -66,6 +66,8 @@ def predict_text_inside_box(np_image, rectangle):
     global device
     if not model:
         modelPath = os.path.join(here, 'TextDetection/model/m1.pth')
+        if not os.path.exists(modelPath):
+            return []
         model = torch.load(modelPath, map_location=device)
     xmin = min(int(rectangle[0].x()), int(rectangle[1].x()))
     ymin = min(int(rectangle[0].y()), int(rectangle[1].y()))
