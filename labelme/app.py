@@ -344,14 +344,6 @@ class MainWindow(QtWidgets.QMainWindow):
         #     self.tr("Create CC Rectangle Inside the drawing Rectangle"),
         #     enabled=False,            
         # )
-        predictTextBoxes = action(
-            self.tr("Predict Text Boxes"),
-            self.predictTextBoxes,
-            shortcuts["predict_text_boxes"],
-            "objects",
-            self.tr("Predict Text Boxes by use of frcnn model"),
-            enabled=False,
-        )
         createBlackCCMode = action(
             self.tr("Generate CC Regions - Black"),
             lambda: self.createCCRegion('Black'),
@@ -629,7 +621,6 @@ class MainWindow(QtWidgets.QMainWindow):
             editMode=editMode,
             createRectangleMode=createRectangleMode,
             # createCCSelectMode=createCCSelectMode,
-            predictTextBoxes=predictTextBoxes,
             createMergeShapeMode=createMergeShapeMode,
             createTextGrid=createTextGrid,
             createCircleMode=createCircleMode,
@@ -668,7 +659,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 createMode,
                 createRectangleMode,
                 # createCCSelectMode,
-                predictTextBoxes,
                 createBlackCCMode,
                 createWhiteCCMode,
                 createMergeShapeMode,
@@ -691,7 +681,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 createMode,
                 createRectangleMode,
                 # createCCSelectMode,
-                predictTextBoxes,
                 createMergeShapeMode,
                 createTextGrid,
                 createCircleMode,
@@ -893,7 +882,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actions.createMode,
             self.actions.createRectangleMode,
             # self.actions.createCCSelectMode,
-            self.actions.predictTextBoxes,
             self.actions.createBlackCCMode,
             self.actions.createWhiteCCMode,
             self.actions.createMergeShapeMode,
@@ -1171,7 +1159,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actions.createBlackCCMode.setEnabled(n_selected)
         self.actions.createWhiteCCMode.setEnabled(n_selected)
         self.actions.createTextGrid.setEnabled(n_selected == 1)
-        self.actions.predictTextBoxes.setEnabled(n_selected == 1)
 
     def addLabel(self, shape):
         if shape.group_id is None:
@@ -1351,23 +1338,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def labelOrderChanged(self):
         self.setDirty()
         self.canvas.loadShapes([item.shape() for item in self.labelList])
-
-    def predictTextBoxes(self, mode='Black'):
-        self.setEditMode()
-        selected = self.labelList.selectedItems()
-        if len(selected) == 0:
-            return
-        shape = selected[0].shape()
-        np_image = self.np_image_b if mode=='Black' else self.np_image_w
-        shapes = utils.predict_text_inside_box(np_image, shape)
-        if len(shapes) != 0:
-            for shape in shapes:
-                self.canvas.shapes.append(shape)
-                self.addLabel(shape)
-            self.canvas.storeShapes()
-            self.canvas.update()
-            self.setDirty()
-        self.labelList.clearSelection()
 
     def createTextGrid(self):
         self.setEditMode()

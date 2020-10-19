@@ -29,4 +29,3 @@ from .qt import distancetoline
 from .qt import fmtShortcut
 
 from .label import connected_component_from_rectangle_region
-from .label import predict_text_inside_box
