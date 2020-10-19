@@ -114,8 +114,10 @@ def qimage_to_np_array(qimage):
     
     # 轉成binary image
     arr = cv2.cvtColor(arr, cv2.COLOR_BGR2GRAY)
-    _, arr = cv2.threshold(arr, 200, 255, cv2.THRESH_BINARY)
+    _, bmode = cv2.threshold(arr, 200, 255, cv2.THRESH_BINARY)
+    bmode = cv2.bitwise_not(bmode)
+    _, wmode = cv2.threshold(arr, 55, 255, cv2.THRESH_BINARY)
     # cv2.imshow('aaa', arr)
-    return arr 
+    return bmode, wmode
     
     

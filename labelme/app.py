@@ -352,10 +352,18 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tr("Predict Text Boxes by use of frcnn model"),
             enabled=False,
         )
-        createCCMode = action(
-            self.tr("Generate CC Regions"),
-            self.createCCRegion,
+        createBlackCCMode = action(
+            self.tr("Generate CC Regions - Black"),
+            lambda: self.createCCRegion('Black'),
             shortcuts["create_cc_region"],
+            "objects",
+            self.tr("Create CC Rectangle Inside the Choosing Bubble"),
+            enabled=False,
+        )
+        createWhiteCCMode = action(
+            self.tr("Generate CC Regions - White"),
+            lambda: self.createCCRegion('White'),
+            None,
             "objects",
             self.tr("Create CC Rectangle Inside the Choosing Bubble"),
             enabled=False,
@@ -638,7 +646,8 @@ class MainWindow(QtWidgets.QMainWindow):
             zoomActions=zoomActions,
             openNextImg=openNextImg,
             openPrevImg=openPrevImg,
-            createCCMode=createCCMode,
+            createBlackCCMode=createBlackCCMode,
+            createWhiteCCMode=createWhiteCCMode,
             fileMenuActions=(open_, opendir, save, saveAs, close, quit),
             tool=(),
             # XXX: need to add some actions here to activate the shortcut
@@ -660,7 +669,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 createRectangleMode,
                 # createCCSelectMode,
                 predictTextBoxes,
-                createCCMode,
+                createBlackCCMode,
+                createWhiteCCMode,
                 createMergeShapeMode,
                 createTextGrid,
                 createCircleMode,
@@ -797,7 +807,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Application state.
         self.image = QtGui.QImage()
-        self.np_image = None
+        self.np_image_b = self.np_image_w = None
         self.imagePath = None
         self.recentFiles = []
         self.maxRecent = 7
@@ -884,7 +894,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actions.createRectangleMode,
             # self.actions.createCCSelectMode,
             self.actions.predictTextBoxes,
-            self.actions.createCCMode,
+            self.actions.createBlackCCMode,
+            self.actions.createWhiteCCMode,
             self.actions.createMergeShapeMode,
             self.actions.createTextGrid,
             self.actions.createCircleMode,
@@ -1157,7 +1168,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.actions.edit.setEnabled(n_selected == 1)
         # self.actions.edit.setEnabled(isSameLabel)
         self.actions.edit.setEnabled(n_selected)
-        self.actions.createCCMode.setEnabled(n_selected)
+        self.actions.createBlackCCMode.setEnabled(n_selected)
+        self.actions.createWhiteCCMode.setEnabled(n_selected)
         self.actions.createTextGrid.setEnabled(n_selected == 1)
         self.actions.predictTextBoxes.setEnabled(n_selected == 1)
 
@@ -1340,13 +1352,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setDirty()
         self.canvas.loadShapes([item.shape() for item in self.labelList])
 
-    def predictTextBoxes(self):
+    def predictTextBoxes(self, mode='Black'):
         self.setEditMode()
         selected = self.labelList.selectedItems()
         if len(selected) == 0:
             return
         shape = selected[0].shape()
-        shapes = utils.predict_text_inside_box(self.np_image, shape)
+        np_image = self.np_image_b if mode=='Black' else self.np_image_w
+        shapes = utils.predict_text_inside_box(np_image, shape)
         if len(shapes) != 0:
             for shape in shapes:
                 self.canvas.shapes.append(shape)
@@ -1385,7 +1398,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.setDirty()
         self.labelList.clearSelection()
 
-    def createCCRegion(self):
+    def createCCRegion(self, mode='Black'):
         self.setEditMode()
         newShape = []
         # get shape from canvas
@@ -1395,11 +1408,11 @@ class MainWindow(QtWidgets.QMainWindow):
             
         # 抓前一次的輸入
         previous_text = self.labelDialog.edit.text()
-        
+        np_image = self.np_image_b if mode=='Black' else self.np_image_w
         for item in selected:
             shape = item.shape()
             # 生成cc區域
-            ccRegion = utils.connected_component_from_rectangle_region(self.np_image, shape)
+            ccRegion = utils.connected_component_from_rectangle_region(np_image, shape)
             newShape = newShape + ccRegion
             
         # 等待使用者輸入，根據拉條視覺化要生成的cc區域
@@ -1511,7 +1524,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 if self.canvas.createMode=="cc_rectangle":
                     shape = self.canvas.shapes[-1]
                     # 生成cc區域
-                    ccRegion = utils.connected_component_from_rectangle_region(self.np_image, shape)
+                    ccRegion = utils.connected_component_from_rectangle_region(self.np_image_b, shape)
                     self.canvas.setCCRegion(ccRegion)
                 # # 等待使用者輸入，根據拉條視覺化要生成的cc區域
                 text, flags, group_id, _ = self.labelDialog.popUp(text, mode=self.canvas.createMode)
@@ -1713,7 +1726,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.status(self.tr("Error reading %s") % filename)
             return False
         self.image = image
-        self.np_image = utils.qimage_to_np_array(image)
+        # np_image_b : 反白圖片
+        # np_image_w : 無反白圖片
+        self.np_image_b, self.np_image_w = utils.qimage_to_np_array(image)
         self.filename = filename
         if self._config["keep_prev"]:
             prev_shapes = self.canvas.shapes
