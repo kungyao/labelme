@@ -1696,8 +1696,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.status(self.tr("Error reading %s") % filename)
             return False
         self.image = image
-        # np_image_b : 反白圖片
-        # np_image_w : 無反白圖片
+        # np_image_b : 無反白圖片
+        # np_image_w : 反白圖片
         self.np_image_b, self.np_image_w = utils.qimage_to_np_array(image)
         self.filename = filename
         if self._config["keep_prev"]:
