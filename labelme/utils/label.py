@@ -30,9 +30,9 @@ def connected_component_from_rectangle_region(np_image, rectangle):
     # # to binary image
     # _, thresImage = cv2.threshold(np_image, 150, 255, cv2.THRESH_BINARY)
     label = cv2.bitwise_and(np_image, label)
-    # # cc找白色區域，所以反白
-    # label = cv2.bitwise_not(label)
-    # # cv2.imshow('aaa', label)
+    # cc找白色區域，所以反白
+    label = cv2.bitwise_not(label)
+    # cv2.imshow('aaa', label)
     
     ccRegion = []
     GLabels, _, GStats, _ = cv2.connectedComponentsWithStats(label)
