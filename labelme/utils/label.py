@@ -36,7 +36,7 @@ def connected_component_from_rectangle_region(np_image, rectangle):
     
     ccRegion = []
     GLabels, _, GStats, _ = cv2.connectedComponentsWithStats(label)
-    for GLabel in range(1, GLabels, 1):
+    for GLabel in range(2, GLabels, 1):
         area = GStats[GLabel, cv2.CC_STAT_AREA]
         # top left
         p1 = [GStats[GLabel, cv2.CC_STAT_LEFT], GStats[GLabel, cv2.CC_STAT_TOP]]
