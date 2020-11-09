@@ -368,14 +368,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tr("Merge Shape Inside the Rectangle with Same Label"),
             enabled=False,
         )        
-        createTextGrid = action(
-            self.tr("Create Text Grid"),
-            self.createTextGrid,
-            shortcuts["create_text_grid"],
-            "objects",
-            self.tr(""),
-            enabled=False,
-        )
+        # createTextGrid = action(
+        #     self.tr("Create Text Grid"),
+        #     self.createTextGrid,
+        #     shortcuts["create_text_grid"],
+        #     "objects",
+        #     self.tr(""),
+        #     enabled=False,
+        # )
         createCircleMode = action(
             self.tr("Create Circle"),
             lambda: self.toggleDrawMode(False, createMode="circle"),
@@ -622,7 +622,7 @@ class MainWindow(QtWidgets.QMainWindow):
             createRectangleMode=createRectangleMode,
             # createCCSelectMode=createCCSelectMode,
             createMergeShapeMode=createMergeShapeMode,
-            createTextGrid=createTextGrid,
+            # createTextGrid=createTextGrid,
             createCircleMode=createCircleMode,
             createLineMode=createLineMode,
             createPointMode=createPointMode,
@@ -662,7 +662,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createBlackCCMode,
                 createWhiteCCMode,
                 createMergeShapeMode,
-                createTextGrid,
+                # createTextGrid,
                 createCircleMode,
                 createLineMode,
                 createPointMode,
@@ -682,7 +682,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createRectangleMode,
                 # createCCSelectMode,
                 createMergeShapeMode,
-                createTextGrid,
+                # createTextGrid,
                 createCircleMode,
                 createLineMode,
                 createPointMode,
@@ -885,7 +885,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actions.createBlackCCMode,
             self.actions.createWhiteCCMode,
             self.actions.createMergeShapeMode,
-            self.actions.createTextGrid,
+            # self.actions.createTextGrid,
             self.actions.createCircleMode,
             self.actions.createLineMode,
             self.actions.createPointMode,
@@ -1158,7 +1158,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actions.edit.setEnabled(n_selected)
         self.actions.createBlackCCMode.setEnabled(n_selected)
         self.actions.createWhiteCCMode.setEnabled(n_selected)
-        self.actions.createTextGrid.setEnabled(n_selected == 1)
+        # self.actions.createTextGrid.setEnabled(n_selected == 1)
 
     def addLabel(self, shape):
         if shape.group_id is None:
