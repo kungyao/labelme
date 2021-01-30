@@ -211,6 +211,23 @@ class MainWindow(QtWidgets.QMainWindow):
         # Actions
         action = functools.partial(utils.newAction, self)
         shortcuts = self._config["shortcuts"]
+
+        # manga label visibility checkbox
+        self.bubble_check = action(
+            self.tr("Bubble"),
+            self.bubble_check_change, 
+            tip=self.tr("Set Bubbles Visibility"), 
+            checkable=True,
+            checked=True
+        )
+        self.bubble_content_check = action(
+            self.tr("Bubble Content"),
+            self.bubble_check_change, 
+            tip=self.tr("Set Bubble Contents Visibility"), 
+            checkable=True,
+            checked=True
+        )
+
         quit = action(
             self.tr("&Quit"),
             self.close,
@@ -368,14 +385,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tr("Merge Shape Inside the Rectangle with Same Label"),
             enabled=False,
         )        
-        # createTextGrid = action(
-        #     self.tr("Create Text Grid"),
-        #     self.createTextGrid,
-        #     shortcuts["create_text_grid"],
-        #     "objects",
-        #     self.tr(""),
-        #     enabled=False,
-        # )
+        createTextGrid = action(
+            self.tr("Create Text Grid"),
+            self.createTextGrid,
+            shortcuts["create_text_grid"],
+            "objects",
+            self.tr(""),
+            enabled=False,
+        )
         createCircleMode = action(
             self.tr("Create Circle"),
             lambda: self.toggleDrawMode(False, createMode="circle"),
@@ -622,7 +639,7 @@ class MainWindow(QtWidgets.QMainWindow):
             createRectangleMode=createRectangleMode,
             # createCCSelectMode=createCCSelectMode,
             createMergeShapeMode=createMergeShapeMode,
-            # createTextGrid=createTextGrid,
+            createTextGrid=createTextGrid,
             createCircleMode=createCircleMode,
             createLineMode=createLineMode,
             createPointMode=createPointMode,
@@ -662,7 +679,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createBlackCCMode,
                 createWhiteCCMode,
                 createMergeShapeMode,
-                # createTextGrid,
+                createTextGrid,
                 createCircleMode,
                 createLineMode,
                 createPointMode,
@@ -682,7 +699,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createRectangleMode,
                 # createCCSelectMode,
                 createMergeShapeMode,
-                # createTextGrid,
+                createTextGrid,
                 createCircleMode,
                 createLineMode,
                 createPointMode,
@@ -701,6 +718,7 @@ class MainWindow(QtWidgets.QMainWindow):
             edit=self.menu(self.tr("&Edit")),
             view=self.menu(self.tr("&View")),
             help=self.menu(self.tr("&Help")),
+            viewCustom=self.menu(self.tr("&ViewCustom")),
             recentFiles=QtWidgets.QMenu(self.tr("Open &Recent")),
             labelList=labelMenu,
         )
@@ -747,6 +765,14 @@ class MainWindow(QtWidgets.QMainWindow):
                 None,
                 brightnessContrast,
             ),
+        )
+
+        utils.addActions(
+            self.menus.viewCustom,
+            (
+                self.bubble_check,
+                self.bubble_content_check, 
+            )
         )
 
         self.menus.file.aboutToShow.connect(self.updateFileMenu)
@@ -885,7 +911,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actions.createBlackCCMode,
             self.actions.createWhiteCCMode,
             self.actions.createMergeShapeMode,
-            # self.actions.createTextGrid,
+            self.actions.createTextGrid,
             self.actions.createCircleMode,
             self.actions.createLineMode,
             self.actions.createPointMode,
@@ -1158,7 +1184,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actions.edit.setEnabled(n_selected)
         self.actions.createBlackCCMode.setEnabled(n_selected)
         self.actions.createWhiteCCMode.setEnabled(n_selected)
-        # self.actions.createTextGrid.setEnabled(n_selected == 1)
+        self.actions.createTextGrid.setEnabled(n_selected == 1)
 
     def addLabel(self, shape):
         if shape.group_id is None:
@@ -1627,6 +1653,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def togglePolygons(self, value):
         for item in self.labelList:
             item.setCheckState(Qt.Checked if value else Qt.Unchecked)
+
+    # custom view menu
+    def bubble_check_change(self):
+        self.canvas.visibleLabel["Bubble"] = self.bubble_check.isChecked()
+
     # 切換圖片
     def loadFile(self, filename=None):
         """Load the specified file, or the last opened file if None."""

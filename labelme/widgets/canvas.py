@@ -65,6 +65,12 @@ class Canvas(QtWidgets.QWidget):
         self.scale = 1.0
         self.pixmap = QtGui.QPixmap()
         self.visible = {}
+        self.visibleLabel = {
+            "Bubble" : True,
+            "Bubble-Content" : True,
+            "Onomatopoeia" : True,
+            "Onomatopoeia-Content" : True,
+        }
         self._hideBackround = False
         self.hideBackround = False
         self.hShape = None
@@ -551,11 +557,23 @@ class Canvas(QtWidgets.QWidget):
 
         p.drawPixmap(0, 0, self.pixmap)
         Shape.scale = self.scale
-        
+
+        # "Bubble" : True,
+        # "Bubble-Content" : True,
+        # "Onomatopoeia" : True,
+        # "Onomatopoeia-Content" : True,
+
         for shape in self.shapes:
-            if (shape.selected or not self._hideBackround) and self.isVisible(
-                shape
-            ):
+            if (shape.selected or not self._hideBackround) and self.isVisible(shape):
+                label = shape.label
+                true_label = shape.label.split('-')[0]
+                if true_label != "Onomatopoeia":
+                    true_label = "Bubble" if true_label == "Bubble" or true_label == "Handwritten" else "Bubble-Content"
+                else:
+                    # temporary case
+                    true_label = "Onomatopoeia"
+                if not self.visibleLabel[true_label]:
+                    continue
                 shape.fill = shape.selected or shape == self.hShape
                 shape.paint(p)
         if self.current:

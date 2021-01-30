@@ -829,7 +829,7 @@ class LabelDialog(QtWidgets.QDialog):
             
         # initialize sub window
         if mode == 'text_grid':
-            self.sub_window.initialize(pixmap=self.app.canvas.pixmap, np_image=self.app.np_image, pos=self.pos(), rect=shape)
+            self.sub_window.initialize(pixmap=self.app.canvas.pixmap, np_image=self.app.np_image_b, pos=self.pos(), rect=shape)
             self.sub_window.show()
             self.sub_window.move(self.sub_window.moveVal)
             self.sub_window.update()
