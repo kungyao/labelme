@@ -236,7 +236,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.bubble_content_check = action(
             self.tr("Bubble Content"),
-            self.bubble_check_change, 
+            self.bubble_content_check_change, 
             tip=self.tr("Set Bubble Contents Visibility"), 
             checkable=True,
             checked=True
@@ -1672,6 +1672,9 @@ class MainWindow(QtWidgets.QMainWindow):
     # custom view menu
     def bubble_check_change(self):
         self.canvas.visibleLabel["Bubble"] = self.bubble_check.isChecked()
+    
+    def bubble_content_check_change(self):
+        self.canvas.visibleLabel["Bubble-Content"] = self.bubble_content_check.isChecked()
 
     # 切換圖片
     def loadFile(self, filename=None):
