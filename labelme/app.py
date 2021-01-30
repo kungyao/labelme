@@ -44,8 +44,22 @@ from labelme.widgets import ZoomWidget
 
 
 # num of classes
-LABEL_COLORMAP = imgviz.label_colormap(value=200)
-
+# LABEL_COLORMAP = imgviz.label_colormap(n_label=12)
+# LABEL_COLORMAP = imgviz.label_colormap(value=200)
+LABEL_COLORMAP = [
+    [200, 200, 0],      # bubble
+    [200, 100, 0],      # handwritten                 
+    [200, 0, 0],        # kana
+    [0, 200, 0],        # kanji
+    [200, 0, 200],      # english
+    [0, 200, 200],      # number
+    [200, 200, 200],    # symbol
+    [0, 0, 200],        # onomatopoeia
+    [0, 0, 100],        # onomatopoeia-sub
+    [200, 0, 0],        # onomatopoeia-kana
+    [200, 200, 200],    # onomatopoeia-symbol
+    [200, 200, 0],    # no use
+]
 
 class MainWindow(QtWidgets.QMainWindow):
 
@@ -1220,8 +1234,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def _get_rgb_by_label(self, label):
         if self._config["shape_color"] == "auto":
             item = self.uniqLabelList.findItemsByLabel(label)[0]
-            label_id = self.uniqLabelList.indexFromItem(item).row() + 1
+            label_id = self.uniqLabelList.indexFromItem(item).row()
             label_id += self._config["shift_auto_shape_color"]
+            # print(item, label_id, LABEL_COLORMAP[label_id % len(LABEL_COLORMAP)])
             return LABEL_COLORMAP[label_id % len(LABEL_COLORMAP)]
         elif (
             self._config["shape_color"] == "manual"
