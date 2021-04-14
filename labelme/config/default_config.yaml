@@ -9,7 +9,7 @@ logger_level: info
 
 flags: null
 label_flags: null
-labels: [Bubble,Handwritten,Kana,Kanji,English,Number,Symbol,Onomatopoeia,Onomatopoeia-Kana,Onomatopoeia-Symbol]
+labels: [Bubble,Handwritten,Kana,Kanji,English,Number,Symbol,Onomatopoeia,Onomatopoeia-English,Onomatopoeia-Kana,Onomatopoeia-Symbol]
 file_search: null
 sort_labels: true
 validate_label: null

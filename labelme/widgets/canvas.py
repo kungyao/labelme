@@ -156,16 +156,16 @@ class Canvas(QtWidgets.QWidget):
         self.restoreCursor()
 
     def isVisible(self, shape):
-        label = shape.label
-        if label:
-            true_label = shape.label.split('-')[0]
-            if true_label != "Onomatopoeia":
-                true_label = "Bubble" if (true_label == "Bubble" or true_label == "Handwritten") else "Bubble-Content"
-            else:
-                # temporary case
-                true_label = "Onomatopoeia"
-            if not self.visibleLabel[true_label]:
-                return False
+        # label = shape.label
+        # if label:
+        #     true_label = shape.label.split('-')[0]
+        #     if true_label != "Onomatopoeia":
+        #         true_label = "Bubble" if (true_label == "Bubble" or true_label == "Handwritten") else "Bubble-Content"
+        #     else:
+        #         # temporary case
+        #         true_label = "Onomatopoeia"
+        #     if not self.visibleLabel[true_label]:
+        #         return False
         return self.visible.get(shape, True)
 
     def drawing(self):
