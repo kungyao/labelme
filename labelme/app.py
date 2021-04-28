@@ -1347,6 +1347,7 @@ class MainWindow(QtWidgets.QMainWindow):
         s = []
         for shape in shapes:
             label = shape["label"]
+            sub_label = shape["sub_label"] if "sub_label" in shape else None
             points = shape["points"]
             shape_type = shape["shape_type"]
             flags = shape["flags"]
@@ -1354,7 +1355,7 @@ class MainWindow(QtWidgets.QMainWindow):
             other_data = shape["other_data"]
 
             shape = Shape(
-                label=label, shape_type=shape_type, group_id=group_id,
+                label=label, sub_label=sub_label, shape_type=shape_type, group_id=group_id,
             )
             for x, y in points:
                 shape.addPoint(QtCore.QPointF(x, y))
@@ -1389,6 +1390,7 @@ class MainWindow(QtWidgets.QMainWindow):
             data.update(
                 dict(
                     label=s.label.encode("utf-8") if PY2 else s.label,
+                    sub_label=s.sub_label.encode("utf-8") if PY2 else s.sub_label,
                     points=[(p.x(), p.y()) for p in s.points],
                     group_id=s.group_id,
                     shape_type=s.shape_type,
@@ -1396,7 +1398,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 )
             )
             return data
-
         shapes = [format_shape(item.shape()) for item in self.labelList]
         flags = {}
         for i in range(self.flag_widget.count()):
