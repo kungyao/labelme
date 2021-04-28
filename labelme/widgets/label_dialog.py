@@ -700,7 +700,8 @@ class LabelDialog(QtWidgets.QDialog):
         self.sub_labelList.setDragDropMode(
             QtWidgets.QAbstractItemView.InternalMove
         )
-        self.sub_labelList.currentItemChanged.connect(self.labelSelected)
+        self.sub_labelList.currentItemChanged.connect(self.sub_labelSelected)
+        # make sure main label has content
         self.sub_labelList.itemDoubleClicked.connect(self.labelDoubleClicked)
         self.edit.setListWidget(self.sub_labelList)
         layout.addWidget(self.sub_labelList)
@@ -747,6 +748,9 @@ class LabelDialog(QtWidgets.QDialog):
 
     def labelSelected(self, item):
         self.edit.setText(item.text())
+
+    def sub_labelSelected(self, item):
+        self.sub_edit.setText(item.text())
 
     def validate(self):
         text = self.edit.text()
@@ -869,7 +873,7 @@ class LabelDialog(QtWidgets.QDialog):
         
         if self.exec_():
             result_text = self.edit.text()
-            # result_sub_text = self.edit.text()
+            result_sub_text = self.sub_edit.text()
             result_flag = self.getFlags()
             result_groupid = self.getGroupId()
             

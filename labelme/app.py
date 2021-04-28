@@ -1147,9 +1147,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # get last choose shape data
         shape = items[-1].shape()
         text, flags, group_id, sub_text = self.labelDialog.popUp(
-            text=shape.label, flags=shape.flags, group_id=shape.group_id,
+            text=shape.label, flags=shape.flags, group_id=shape.group_id, sub_text=""
         )
-        print(sub_text)
+        
         if text is None:
             return
         if not self.validateLabel(text):
@@ -1419,7 +1419,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         shape = selected[0].shape()
         previous_text = self.labelDialog.edit.text()
-        text, flags, group_id, _ = self.labelDialog.popUp(previous_text, mode="text_grid", shape=shape)
+        text, flags, group_id, sub_text = self.labelDialog.popUp(previous_text, mode="text_grid", shape=shape)
         
         if not text:
             self.labelDialog.edit.setText(previous_text)
@@ -1458,7 +1458,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
         # 等待使用者輸入，根據拉條視覺化要生成的cc區域
         self.canvas.setCCRegion(newShape)
-        text, flags, group_id, _ = self.labelDialog.popUp(previous_text, mode="cc_in_rectangle")
+        text, flags, group_id, sub_text = self.labelDialog.popUp(previous_text, mode="cc_in_rectangle")
         self.canvas.setCCRegion()
         if not text:
             self.labelDialog.edit.setText(previous_text)
@@ -1568,7 +1568,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     ccRegion = utils.connected_component_from_rectangle_region(self.np_image_b, shape)
                     self.canvas.setCCRegion(ccRegion)
                 # # 等待使用者輸入，根據拉條視覺化要生成的cc區域
-                text, flags, group_id, _ = self.labelDialog.popUp(text, mode=self.canvas.createMode)
+                text, flags, group_id, sub_text = self.labelDialog.popUp(text, mode=self.canvas.createMode)
                 self.canvas.setCCRegion()
                 # 輸入完成，判斷是否有東西
                 if not text:
