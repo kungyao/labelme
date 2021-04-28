@@ -31,6 +31,11 @@ shape:
 
 # main
 flag_dock:
+  show: false
+  closable: true
+  movable: true
+  floatable: true
+sub_label_dock:
   show: true
   closable: true
   movable: true

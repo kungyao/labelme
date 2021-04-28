@@ -150,6 +150,27 @@ class MainWindow(QtWidgets.QMainWindow):
         self.label_dock.setObjectName(u"Label List")
         self.label_dock.setWidget(self.uniqLabelList)
 
+        # my label list
+        self.uniqSubLabelList = UniqueLabelQListWidget()
+        self.uniqSubLabelList.setToolTip(
+            self.tr(
+                "Select label to start annotating for it. "
+                "Press 'Esc' to deselect."
+            )
+        )
+        # load sub label list
+        all_japanese = "\
+あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽ\
+アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ"
+        for kana in all_japanese:
+            item = self.uniqSubLabelList.createItemFromLabel(kana)
+            self.uniqSubLabelList.addItem(item)
+            rgb = (200, 0, 0)
+            self.uniqLabelList.setItemLabel(item, label, rgb)
+        self.sub_label_dock = QtWidgets.QDockWidget(self.tr(u"Sub Label List"), self)
+        self.sub_label_dock.setObjectName(u"Sub Label List")
+        self.sub_label_dock.setWidget(self.uniqSubLabelList)
+
         self.fileSearch = QtWidgets.QLineEdit()
         self.fileSearch.setPlaceholderText(self.tr("Search Filename"))
         self.fileSearch.textChanged.connect(self.fileSearchChanged)
@@ -206,7 +227,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(scrollArea)
 
         features = QtWidgets.QDockWidget.DockWidgetFeatures()
-        for dock in ["flag_dock", "label_dock", "shape_dock", "file_dock"]:
+        for dock in ["flag_dock", "sub_label_dock", "label_dock", "shape_dock", "file_dock"]:
             if self._config[dock]["closable"]:
                 features = features | QtWidgets.QDockWidget.DockWidgetClosable
             if self._config[dock]["floatable"]:
@@ -217,7 +238,12 @@ class MainWindow(QtWidgets.QMainWindow):
             if self._config[dock]["show"] is False:
                 getattr(self, dock).setVisible(False)
 
+        # move to configure
+        # set flag menu invisible at the begining.
+        # getattr(self, "flag_dock").setVisible(False)
+
         self.addDockWidget(Qt.RightDockWidgetArea, self.flag_dock)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.sub_label_dock)
         self.addDockWidget(Qt.RightDockWidgetArea, self.label_dock)
         self.addDockWidget(Qt.RightDockWidgetArea, self.shape_dock)
         self.addDockWidget(Qt.RightDockWidgetArea, self.file_dock)
@@ -761,6 +787,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.menus.view,
             (
                 self.flag_dock.toggleViewAction(),
+                self.sub_label_dock.toggleViewAction(),
                 self.label_dock.toggleViewAction(),
                 self.shape_dock.toggleViewAction(),
                 self.file_dock.toggleViewAction(),
