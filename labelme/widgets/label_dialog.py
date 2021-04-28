@@ -562,12 +562,6 @@ class LabelDialog(QtWidgets.QDialog):
         if flags:
             self.edit.textChanged.connect(self.updateFlags)
 
-        # my edit
-        self.sub_edit = LabelQLineEdit()
-        self.sub_edit.setPlaceholderText(text)
-        self.sub_edit.setValidator(labelme.utils.labelValidator())
-        self.sub_edit.editingFinished.connect(self.postProcess)
-
         self.edit_group_id = QtWidgets.QLineEdit()
         self.edit_group_id.setPlaceholderText("Group ID")
         self.edit_group_id.setValidator(
@@ -577,8 +571,7 @@ class LabelDialog(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout()
         if show_text_field:
             layout_edit = QtWidgets.QHBoxLayout()
-            layout_edit.addWidget(self.edit, 3)
-            layout_edit.addWidget(self.sub_edit, 3)
+            layout_edit.addWidget(self.edit, 6)
             layout_edit.addWidget(self.edit_group_id, 2)
             layout.addLayout(layout_edit)
         
@@ -700,7 +693,7 @@ class LabelDialog(QtWidgets.QDialog):
         self.sub_labelList.setDragDropMode(
             QtWidgets.QAbstractItemView.InternalMove
         )
-        self.sub_labelList.currentItemChanged.connect(self.sub_labelSelected)
+        self.sub_labelList.currentItemChanged.connect(self.labelSelected)
         # make sure main label has content
         self.sub_labelList.itemDoubleClicked.connect(self.labelDoubleClicked)
         self.edit.setListWidget(self.sub_labelList)
@@ -732,7 +725,28 @@ class LabelDialog(QtWidgets.QDialog):
         else:
             raise ValueError("Unsupported completion: {}".format(completion))
         completer.setModel(self.labelList.model())
+        self.completer = completer
         self.edit.setCompleter(completer)
+
+        # sub completion
+        completer = QtWidgets.QCompleter()
+        if not QT5 and completion != "startswith":
+            logger.warn(
+                "completion other than 'startswith' is only "
+                "supported with Qt5. Using 'startswith'"
+            )
+            completion = "startswith"
+        if completion == "startswith":
+            completer.setCompletionMode(QtWidgets.QCompleter.InlineCompletion)
+            # Default settings.
+            # completer.setFilterMode(QtCore.Qt.MatchStartsWith)
+        elif completion == "contains":
+            completer.setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
+            completer.setFilterMode(QtCore.Qt.MatchContains)
+        else:
+            raise ValueError("Unsupported completion: {}".format(completion))
+        completer.setModel(self.sub_labelList.model())
+        self.sub_completer = completer
         
         # mine
         # self.inEdit = False
@@ -748,9 +762,6 @@ class LabelDialog(QtWidgets.QDialog):
 
     def labelSelected(self, item):
         self.edit.setText(item.text())
-
-    def sub_labelSelected(self, item):
-        self.sub_edit.setText(item.text())
 
     def validate(self):
         text = self.edit.text()
@@ -818,69 +829,89 @@ class LabelDialog(QtWidgets.QDialog):
             return int(group_id)
         return None
 
-    def popUp(self, text=None, move=True, flags=None, group_id=None, mode=None, shape=None):
+    def popUp(self, text=None, sub_text=None, move=True, flags=None, group_id=None, mode=None, shape=None, eidtType='Main'):
         f = mode == 'cc_rectangle' or mode == 'create_cc_region' or mode == 'cc_in_rectangle'
         for item in self.cc_threshold_ui:
             item.setVisible(f)
         f = mode == 'text_grid'
         for item in self.text_box_ui:
             item.setVisible(f)
+
+        # if self._fit_to_content["row"]:
+        #     self.labelList.setMinimumHeight(
+        #         self.labelList.sizeHintForRow(0) * self.labelList.count() + 2
+        #     )
+        # if self._fit_to_content["column"]:
+        #     self.labelList.setMinimumWidth(
+        #         self.labelList.sizeHintForColumn(0) + 2
+        #     )
         
-        if self._fit_to_content["row"]:
-            self.labelList.setMinimumHeight(
-                self.labelList.sizeHintForRow(0) * self.labelList.count() + 2
-            )
-        if self._fit_to_content["column"]:
-            self.labelList.setMinimumWidth(
-                self.labelList.sizeHintForColumn(0) + 2
-            )
-        # if text is None, the previous label in self.edit is kept
-        if text is None:
-            text = self.edit.text()
-        if flags:
-            self.setFlags(flags)
-        else:
-            self.resetFlags(text)
-        self.edit.setText(text)
-        self.edit.setSelection(0, len(text))
-        if group_id is None:
-            self.edit_group_id.clear()
-        else:
-            self.edit_group_id.setText(str(group_id))
-        items = self.labelList.findItems(text, QtCore.Qt.MatchFixedString)
-        if items:
-            if len(items) != 1:
-                logger.warning("Label list has duplicate '{}'".format(text))
-            self.labelList.setCurrentItem(items[0])
-            row = self.labelList.row(items[0])
-            self.edit.completer().setCurrentRow(row)
-        self.edit.setFocus(QtCore.Qt.PopupFocusReason)
-        if move:
-            # self.move(QtGui.QCursor.pos())
-            self.move(QtWidgets.QApplication.desktop().screen().rect().center() - self.rect().center())
-            
-        # initialize sub window
-        if mode == 'text_grid':
-            self.sub_window.initialize(pixmap=self.app.canvas.pixmap, np_image=self.app.np_image_b, pos=self.pos(), rect=shape)
-            self.sub_window.show()
-            self.sub_window.move(self.sub_window.moveVal)
-            self.sub_window.update()
-        
+        if eidtType=='Main':
+            self.edit.setCompleter(self.completer)
+            self.labelList.setVisible(True)
+            self.sub_labelList.setVisible(False)
+            # if text is None, the previous label in self.edit is kept
+            if text is None:
+                text = self.edit.text()
+            if flags:
+                self.setFlags(flags)
+            else:
+                self.resetFlags(text)
+            self.edit.setText(text)
+            self.edit.setSelection(0, len(text))
+            if group_id is None:
+                self.edit_group_id.clear()
+            else:
+                self.edit_group_id.setText(str(group_id))
+            items = self.labelList.findItems(text, QtCore.Qt.MatchFixedString)
+            if items:
+                if len(items) != 1:
+                    logger.warning("Label list has duplicate '{}'".format(text))
+                self.labelList.setCurrentItem(items[0])
+                row = self.labelList.row(items[0])
+                self.edit.completer().setCurrentRow(row)
+            self.edit.setFocus(QtCore.Qt.PopupFocusReason)
+            if move:
+                # self.move(QtGui.QCursor.pos())
+                self.move(QtWidgets.QApplication.desktop().screen().rect().center() - self.rect().center())
+            # initialize sub window
+            if mode == 'text_grid':
+                self.sub_window.initialize(pixmap=self.app.canvas.pixmap, np_image=self.app.np_image_b, pos=self.pos(), rect=shape)
+                self.sub_window.show()
+                self.sub_window.move(self.sub_window.moveVal)
+                self.sub_window.update()
+        elif eidtType=='Sub':
+            self.edit.setCompleter(self.sub_completer)
+            self.labelList.setVisible(False)
+            self.sub_labelList.setVisible(True)
+            # self.sub_labelList.item(0).text()
+            if sub_text is None:
+                sub_text = ""
+            self.edit.setText(sub_text)
+            self.edit.setSelection(0, len(sub_text))
+            items = self.sub_labelList.findItems(sub_text, QtCore.Qt.MatchFixedString)
+            if items:
+                if len(items) != 1:
+                    logger.warning("Label list has duplicate '{}'".format(sub_text))
+                self.sub_labelList.setCurrentItem(items[0])
+                row = self.sub_labelList.row(items[0])
+                self.edit.completer().setCurrentRow(row)
+
         result_text = None
-        result_sub_text = None
         result_flag = None
         result_groupid = None
         
         if self.exec_():
             result_text = self.edit.text()
-            result_sub_text = self.sub_edit.text()
             result_flag = self.getFlags()
             result_groupid = self.getGroupId()
             
         if mode == 'text_grid':
             self.sub_window.close()
         
-        return result_text, result_flag, result_groupid, result_sub_text
+        # first is for main mode label
+        # second is for sub mode label
+        return result_text, result_flag, result_groupid, result_text
     
     def setTextBoxAttribute(self):
         self.sub_window.generateGrid(int("0" + self.text_cols.text()), int("0" + self.text_rows.text()))

@@ -40,12 +40,14 @@ class Shape(object):
     def __init__(
         self,
         label=None,
+        sub_label=None,
         line_color=None,
         shape_type=None,
         flags=None,
         group_id=None,
     ):
         self.label = label
+        self.sub_label = sub_label
         self.group_id = group_id
         self.points = []
         self.fill = False

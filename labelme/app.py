@@ -639,6 +639,15 @@ class MainWindow(QtWidgets.QMainWindow):
             enabled=False,
         )
 
+        sub_edit = action(
+            self.tr("&Edit Sub Label"),
+            self.editSubLabel,
+            None,
+            "edit",
+            self.tr("Modify the sub label of the selected polygon"),
+            enabled=False,
+        )
+
         fill_drawing = action(
             self.tr("Fill Drawing Polygon"),
             self.canvas.setFillDrawing,
@@ -652,7 +661,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Lavel list context menu.
         labelMenu = QtWidgets.QMenu()
-        utils.addActions(labelMenu, (edit, delete))
+        utils.addActions(labelMenu, (edit, sub_edit, delete))
         self.labelList.setContextMenuPolicy(Qt.CustomContextMenu)
         self.labelList.customContextMenuRequested.connect(
             self.popLabelListMenu
@@ -671,6 +680,7 @@ class MainWindow(QtWidgets.QMainWindow):
             toggleKeepPrevMode=toggle_keep_prev_mode,
             delete=delete,
             edit=edit,
+            sub_edit=sub_edit,
             copy=copy,
             undoLastPoint=undoLastPoint,
             undo=undo,
@@ -703,6 +713,7 @@ class MainWindow(QtWidgets.QMainWindow):
             # XXX: need to add some actions here to activate the shortcut
             editMenu=(
                 edit,
+                sub_edit,
                 copy,
                 delete,
                 None,
@@ -728,6 +739,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createLineStripMode,
                 editMode,
                 edit,
+                sub_edit,
                 copy,
                 delete,
                 undo,
@@ -1146,10 +1158,10 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         # get last choose shape data
         shape = items[-1].shape()
-        text, flags, group_id, sub_text = self.labelDialog.popUp(
-            text=shape.label, flags=shape.flags, group_id=shape.group_id, sub_text=""
+        text, flags, group_id, _ = self.labelDialog.popUp(
+            text=shape.label, flags=shape.flags, group_id=shape.group_id
         )
-        
+
         if text is None:
             return
         if not self.validateLabel(text):
@@ -1176,6 +1188,46 @@ class MainWindow(QtWidgets.QMainWindow):
                 item = QtWidgets.QListWidgetItem()
                 item.setData(Qt.UserRole, shape.label)
                 self.uniqLabelList.addItem(item)
+        # clear selected item
+        self.labelList.clearSelection()
+        self.setDirty()
+
+    def editSubLabel(self, item=None):
+        items = []
+        if item and not isinstance(item, LabelListWidgetItem):
+            raise TypeError("item must be LabelListWidgetItem type")
+        if not self.canvas.editing():
+            return
+        if not item:
+            items = self.currentItems()
+        else:
+            items = [item]
+        if len(items) == 0:
+            return
+        # get last choose shape data
+        shape = items[-1].shape()
+        _, flags, group_id, sub_text = self.labelDialog.popUp(
+            sub_text=shape.sub_label, flags=shape.flags, group_id=shape.group_id, eidtType='Sub'
+        )
+
+        if sub_text is None:
+            return
+        # if not self.validateLabel(text):
+        #     self.errorMessage(
+        #         self.tr("Invalid label"),
+        #         self.tr("Invalid label '{}' with validation type '{}'").format(
+        #             text, self._config["validate_label"]
+        #         ),
+        #     )
+        #     return
+        for item in items:
+            shape = item.shape()
+            shape.sub_label = sub_text
+            if not self.uniqSubLabelList.findItemsByLabel(shape.sub_label):
+                item = QtWidgets.QListWidgetItem()
+                item.setData(Qt.UserRole, shape.sub_label)
+                self.uniqSubLabelList.addItem(item)
+                print(f"Add new sub label type {shape.sub_label}.")
         # clear selected item
         self.labelList.clearSelection()
         self.setDirty()
@@ -1226,6 +1278,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.actions.edit.setEnabled(n_selected == 1)
         # self.actions.edit.setEnabled(isSameLabel)
         self.actions.edit.setEnabled(n_selected)
+        self.actions.sub_edit.setEnabled(n_selected)
         self.actions.createBlackCCMode.setEnabled(n_selected)
         self.actions.createWhiteCCMode.setEnabled(n_selected)
         self.actions.createTextGrid.setEnabled(n_selected == 1)
@@ -1419,7 +1472,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         shape = selected[0].shape()
         previous_text = self.labelDialog.edit.text()
-        text, flags, group_id, sub_text = self.labelDialog.popUp(previous_text, mode="text_grid", shape=shape)
+        text, flags, group_id, _ = self.labelDialog.popUp(text=previous_text, mode="text_grid", shape=shape)
         
         if not text:
             self.labelDialog.edit.setText(previous_text)
@@ -1458,7 +1511,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
         # 等待使用者輸入，根據拉條視覺化要生成的cc區域
         self.canvas.setCCRegion(newShape)
-        text, flags, group_id, sub_text = self.labelDialog.popUp(previous_text, mode="cc_in_rectangle")
+        text, flags, group_id, _ = self.labelDialog.popUp(text=previous_text, mode="cc_in_rectangle")
         self.canvas.setCCRegion()
         if not text:
             self.labelDialog.edit.setText(previous_text)
@@ -1568,7 +1621,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     ccRegion = utils.connected_component_from_rectangle_region(self.np_image_b, shape)
                     self.canvas.setCCRegion(ccRegion)
                 # # 等待使用者輸入，根據拉條視覺化要生成的cc區域
-                text, flags, group_id, sub_text = self.labelDialog.popUp(text, mode=self.canvas.createMode)
+                text, flags, group_id, _ = self.labelDialog.popUp(text=text, mode=self.canvas.createMode)
                 self.canvas.setCCRegion()
                 # 輸入完成，判斷是否有東西
                 if not text:
