@@ -159,14 +159,15 @@ class MainWindow(QtWidgets.QMainWindow):
             )
         )
         # load sub label list
-        all_japanese = "\
+        all_japanese = u"\
 あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽ\
 アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ"
-        for kana in all_japanese:
+        sub_labels = [kana for kana in all_japanese]
+        for kana in sub_labels:
             item = self.uniqSubLabelList.createItemFromLabel(kana)
             self.uniqSubLabelList.addItem(item)
             rgb = (200, 0, 0)
-            self.uniqLabelList.setItemLabel(item, label, rgb)
+            self.uniqSubLabelList.setItemLabel(item, kana, rgb)
         self.sub_label_dock = QtWidgets.QDockWidget(self.tr(u"Sub Label List"), self)
         self.sub_label_dock.setObjectName(u"Sub Label List")
         self.sub_label_dock.setWidget(self.uniqSubLabelList)
@@ -200,6 +201,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.labelDialog = LabelDialog(
             parent=self,
             labels=self._config["labels"],
+            sub_labels=sub_labels,
             sort_labels=self._config["sort_labels"],
             show_text_field=self._config["show_label_text_field"],
             completion=self._config["label_completion"],
@@ -240,7 +242,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # move to configure
         # set flag menu invisible at the begining.
-        # getattr(self, "flag_dock").setVisible(False)
+        getattr(self, "flag_dock").setVisible(False)
 
         self.addDockWidget(Qt.RightDockWidgetArea, self.flag_dock)
         self.addDockWidget(Qt.RightDockWidgetArea, self.sub_label_dock)
@@ -1144,9 +1146,10 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         # get last choose shape data
         shape = items[-1].shape()
-        text, flags, group_id, _ = self.labelDialog.popUp(
+        text, flags, group_id, sub_text = self.labelDialog.popUp(
             text=shape.label, flags=shape.flags, group_id=shape.group_id,
         )
+        print(sub_text)
         if text is None:
             return
         if not self.validateLabel(text):

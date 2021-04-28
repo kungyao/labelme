@@ -536,6 +536,7 @@ class LabelDialog(QtWidgets.QDialog):
         text="Enter object label",
         parent=None,
         labels=None,
+        sub_labels=None,
         sort_labels=True,
         show_text_field=True,
         completion="startswith",
@@ -560,6 +561,13 @@ class LabelDialog(QtWidgets.QDialog):
         self.edit.editingFinished.connect(self.postProcess)
         if flags:
             self.edit.textChanged.connect(self.updateFlags)
+
+        # my edit
+        self.sub_edit = LabelQLineEdit()
+        self.sub_edit.setPlaceholderText(text)
+        self.sub_edit.setValidator(labelme.utils.labelValidator())
+        self.sub_edit.editingFinished.connect(self.postProcess)
+
         self.edit_group_id = QtWidgets.QLineEdit()
         self.edit_group_id.setPlaceholderText("Group ID")
         self.edit_group_id.setValidator(
@@ -569,7 +577,8 @@ class LabelDialog(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout()
         if show_text_field:
             layout_edit = QtWidgets.QHBoxLayout()
-            layout_edit.addWidget(self.edit, 6)
+            layout_edit.addWidget(self.edit, 3)
+            layout_edit.addWidget(self.sub_edit, 3)
             layout_edit.addWidget(self.edit_group_id, 2)
             layout.addLayout(layout_edit)
         
@@ -676,6 +685,25 @@ class LabelDialog(QtWidgets.QDialog):
         self.labelList.itemDoubleClicked.connect(self.labelDoubleClicked)
         self.edit.setListWidget(self.labelList)
         layout.addWidget(self.labelList)
+        # sub label list
+        self.sub_labelList = QtWidgets.QListWidget()
+        if self._fit_to_content["row"]:
+            self.sub_labelList.setHorizontalScrollBarPolicy(
+                QtCore.Qt.ScrollBarAlwaysOff
+            )
+        if self._fit_to_content["column"]:
+            self.sub_labelList.setVerticalScrollBarPolicy(
+                QtCore.Qt.ScrollBarAlwaysOff
+            )
+        if labels:
+            self.sub_labelList.addItems(sub_labels)
+        self.sub_labelList.setDragDropMode(
+            QtWidgets.QAbstractItemView.InternalMove
+        )
+        self.sub_labelList.currentItemChanged.connect(self.labelSelected)
+        self.sub_labelList.itemDoubleClicked.connect(self.labelDoubleClicked)
+        self.edit.setListWidget(self.sub_labelList)
+        layout.addWidget(self.sub_labelList)
         # label_flags
         if flags is None:
             flags = {}
@@ -835,18 +863,20 @@ class LabelDialog(QtWidgets.QDialog):
             self.sub_window.update()
         
         result_text = None
+        result_sub_text = None
         result_flag = None
         result_groupid = None
         
         if self.exec_():
             result_text = self.edit.text()
+            # result_sub_text = self.edit.text()
             result_flag = self.getFlags()
             result_groupid = self.getGroupId()
             
         if mode == 'text_grid':
             self.sub_window.close()
         
-        return result_text, result_flag, result_groupid, None
+        return result_text, result_flag, result_groupid, result_sub_text
     
     def setTextBoxAttribute(self):
         self.sub_window.generateGrid(int("0" + self.text_cols.text()), int("0" + self.text_rows.text()))
